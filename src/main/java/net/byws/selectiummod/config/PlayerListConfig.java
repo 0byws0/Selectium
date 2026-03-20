@@ -1,43 +1,29 @@
 package net.byws.selectiummod.config;
 
+import java.util.HashMap;
 import java.util.UUID;
 
 public class PlayerListConfig
 {
+    public enum Category { ALLY, TARGET }
 //    private static final File PLAYER_LIST_CONFIG_FILE =
 //            FabricLoader.getInstance().getConfigDir().resolve("player_list_selectium-mod.json").toFile();
-    private static UUID allyList[] = {};
-    private static UUID targetList[] = {UUID.fromString("0422ee86-9842-43dd-8fd7-3665aeb87552")};
+    private static HashMap<UUID, Category> playerList = new HashMap<>();
     private static final int allyColor = 0xFF00FF00;
     private static final int targetColor = 0xFFFF0000;
 
-    public static boolean isAlly(UUID playerUUID)
+    public static void load()
     {
-        for (UUID allyUUID : allyList)
-        {
-            if (allyUUID.equals(playerUUID)) return true;
-        }
-        return false;
-    }
-    public static boolean isTarget(UUID playerUUID)
-    {
-        for (UUID targetUUID : targetList)
-        {
-            if (targetUUID.equals(playerUUID)) return true;
-        }
-        return false;
+        playerList.put(UUID.fromString("0422ee86-9842-43dd-8fd7-3665aeb87552"), Category.ALLY);
     }
 
     public static Integer getPlayerOutlineColorRGBA(UUID playerUUID)
     {
-        if (isAlly(playerUUID))
+        switch(playerList.get(playerUUID))
         {
-            return allyColor;
+            case null: return null;
+            case ALLY: return allyColor;
+            case TARGET: return targetColor;
         }
-        else if (isTarget(playerUUID))
-        {
-            return targetColor;
-        }
-        return null;
     }
 }

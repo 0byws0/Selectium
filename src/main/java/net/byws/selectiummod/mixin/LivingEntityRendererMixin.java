@@ -20,8 +20,11 @@ import java.util.UUID;
 @Mixin(LivingEntityRenderer.class)
 public abstract class LivingEntityRendererMixin<T extends LivingEntity, M extends EntityModel<T>>
 {
-    @Shadow
-    protected M model;
+//    @Shadow
+//    protected M model;
+//
+//    @Shadow
+//    public abstract M getModel();
 
     @Inject(
             method = "render(Lnet/minecraft/entity/LivingEntity;FFLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;I)V",
@@ -47,12 +50,14 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, M extend
         if (playerOutline != null) {
 
             matrices.push();
-            matrices.scale(1.05f, 1.05f, 1.05f); // 1.07f, 1.03f, 1.07f
+            matrices.scale(1.05f, 1.03f, 1.05f);
 
-            RenderLayer outlineLayer = PlayerOutline.getFrontCullOutline(((LivingEntityRenderer) (Object) this).getTexture(entity));
+            LivingEntityRenderer playerRender = ((LivingEntityRenderer) (Object) this);
+
+            RenderLayer outlineLayer = PlayerOutline.getFrontCullOutline(playerRender.getTexture(entity)); // ((LivingEntityRenderer) (Object) this).getTexture(entity)
             VertexConsumer consumer = vertexConsumers.getBuffer(outlineLayer);
 
-            model.render(matrices, consumer, LightmapTextureManager.MAX_LIGHT_COORDINATE, OverlayTexture.DEFAULT_UV, playerOutline);
+            playerRender.getModel().render(matrices, consumer, LightmapTextureManager.MAX_LIGHT_COORDINATE, OverlayTexture.DEFAULT_UV, playerOutline); // model
 
             matrices.pop();
         }

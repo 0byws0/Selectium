@@ -23,10 +23,8 @@ public class SelectiumMod implements ModInitializer
 		// However, some things (like resources) may still be uninitialized.
 		// Proceed with mild caution.
 
-		LOGGER.info("Hello Fabric world!");
+		PlayerListConfig.load();
 
-//		ClientTickEvents.END_CLIENT_TICK.register(client -> {
-//			tabId.update();
-//		});
+		LOGGER.info("Player List Loaded!");
 	}
 }
