@@ -1,0 +1,31 @@
+{
+	"schemaVersion": 1,
+	"id": "selectium-mod",
+	"version": "${version}",
+	"name": "Selectium Mod",
+	"description": "This is an example description! Tell everyone what your mod is about!",
+	"authors": [
+		"Byws"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "MIT",
+	"icon": "assets/selectium-mod/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"main": [
+			"net.byws.selectiummod.SelectiumMod"
+		]
+	},
+	"mixins": [
+		"selectium-mod.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.18.4",
+		"minecraft": "~1.21",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
