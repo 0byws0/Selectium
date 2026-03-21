@@ -19,11 +19,11 @@ public class PlayerListConfig
 
     public static Integer getPlayerOutlineColorRGBA(UUID playerUUID)
     {
-        switch(playerList.get(playerUUID))
+        return switch(playerList.get(playerUUID))
         {
-            case null: return null;
-            case ALLY: return allyColor;
-            case TARGET: return targetColor;
-        }
+            case null -> null;
+            case ALLY -> allyColor;
+            case TARGET -> targetColor;
+        };
     }
 }

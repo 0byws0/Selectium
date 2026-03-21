@@ -8,9 +8,9 @@ import net.minecraft.client.render.VertexFormats;
 import net.minecraft.util.Identifier;
 import org.lwjgl.opengl.GL11;
 
-public class PlayerOutline
+public class OutlineRender
 {
-    public static final RenderLayer CUSTOM_OUTLINE = RenderLayer.of(
+    private static final RenderLayer CUSTOM_OUTLINE = RenderLayer.of(
             "entity_outline_front_cull",
             VertexFormats.POSITION_COLOR_TEXTURE_OVERLAY_LIGHT_NORMAL,
             VertexFormat.DrawMode.QUADS,
