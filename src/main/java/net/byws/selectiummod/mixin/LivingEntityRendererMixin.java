@@ -6,7 +6,6 @@ import net.minecraft.client.render.*;
 import net.minecraft.client.render.entity.LivingEntityRenderer;
 import net.minecraft.client.render.entity.model.EntityModel;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import org.spongepowered.asm.mixin.Mixin;
@@ -34,9 +33,9 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, M extend
             int light,
             CallbackInfo ci)
     {
-        if (!((Entity)(Object)entity instanceof PlayerEntity player)) return;
+        if (!(entity instanceof PlayerEntity player)) return;
 
-        Integer playerOutline = PlayerListConfig.getPlayerOutlineColorRGBA(player.getGameProfile().getId());
+        Integer playerOutline = PlayerListConfig.getPlayerColorRGBA(player.getGameProfile().getId());
 
         if (playerOutline != null) {
 

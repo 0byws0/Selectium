@@ -3,7 +3,9 @@
 	"package": "net.byws.selectiummod.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"LivingEntityRendererMixin"
+		"LivingEntityRendererMixin",
+		"PlayerEntityMixin",
+		"PlayerListEntryMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
