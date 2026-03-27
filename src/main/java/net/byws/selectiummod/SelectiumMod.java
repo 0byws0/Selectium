@@ -1,8 +1,10 @@
 package net.byws.selectiummod;
 
+import net.byws.selectiummod.command.SelectiumCommand;
 import net.byws.selectiummod.config.PlayerListConfig;
 import net.fabricmc.api.ModInitializer;
 
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +26,9 @@ public class SelectiumMod implements ModInitializer
 		// Proceed with mild caution.
 
 		PlayerListConfig.load();
+
+		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
+				SelectiumCommand.register(dispatcher));
 
 		LOGGER.info("Player List Loaded!");
 	}

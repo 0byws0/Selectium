@@ -40,7 +40,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, M extend
         if (playerOutline != null) {
 
             matrices.push();
-            matrices.scale(1.05f, 1.03f, 1.05f);
+            matrices.scale(1.03f, 1.01f, 1.03f);
 
             LivingEntityRenderer playerRender = ((LivingEntityRenderer) (Object) this);
 
