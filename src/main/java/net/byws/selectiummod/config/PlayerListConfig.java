@@ -19,8 +19,8 @@ public class PlayerListConfig
 
     private static class ConfigFileContents
     {
-        private HashMap<UUID, Category> genPlayerList = new HashMap<>();
-        private HashMap<UUID, Category> perPlayerList = new HashMap<>();
+        private HashMap<UUID, Category> shrPlayerList = new HashMap<>();
+        private HashMap<UUID, Category> pvtPlayerList = new HashMap<>();
     }
 
     private static ConfigFileContents config = new ConfigFileContents();
@@ -56,8 +56,8 @@ public class PlayerListConfig
 
     private static Category checkList(UUID playerUUID)
     {
-        Category playerCat = config.genPlayerList.get(playerUUID);
-        if (playerCat == null) playerCat = config.perPlayerList.get(playerUUID);
+        Category playerCat = config.shrPlayerList.get(playerUUID);
+        if (playerCat == null) playerCat = config.pvtPlayerList.get(playerUUID);
         return playerCat;
     }
 
@@ -81,25 +81,19 @@ public class PlayerListConfig
         };
     }
 
-    public static UUID[] getPerList() { return config.perPlayerList.keySet().toArray(new UUID[0]); }
+    public static HashMap<UUID, Category> getPvtList() { return config.pvtPlayerList; }
 
-    public static boolean addPerList(UUID playerUUID, Category type)
+    public static boolean addPvtList(UUID playerUUID, Category type)
     {
-        boolean containsPlayer = (config.perPlayerList.put(playerUUID, type) != null);
+        boolean containsPlayer = (config.pvtPlayerList.put(playerUUID, type) != null);
         save();
         return !containsPlayer;
     }
 
-    public static boolean removePerList(UUID playerUUID)
+    public static boolean removePvtList(UUID playerUUID)
     {
-        boolean containsPlayer = (config.perPlayerList.remove(playerUUID) != null);
+        boolean containsPlayer = (config.pvtPlayerList.remove(playerUUID) != null);
         save();
         return containsPlayer;
-    }
-
-    public static void clearPerList()
-    {
-        config.perPlayerList.clear();
-        save();
     }
 }

@@ -16,10 +16,11 @@ public class SelectiumCommand {
 
     // ── Suggestions ────────────────────────────────────────────────────────
 
-    /** Suggests names already in the partner list. */
-    private static final SuggestionProvider<FabricClientCommandSource> KNOWN_PLAYERS =
-            (ctx, builder) -> {
-                for (UUID p : PlayerListConfig.getPerList())
+    /** Suggests names already in the player list. */
+    private static final SuggestionProvider<FabricClientCommandSource> LIST_PLAYERS =
+            (ctx, builder) ->
+            {
+                for (UUID p : PlayerListConfig.getPvtList().keySet())
                 {
                     builder.suggest(p.toString());
                 }
@@ -28,31 +29,28 @@ public class SelectiumCommand {
 
     // ── Registration ───────────────────────────────────────────────────────
 
-    public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher) {
+    public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher)
+    {
 
         dispatcher.register(
                 ClientCommandManager.literal("selectium")
 
-                        // /partner add <name>
-                        .then(ClientCommandManager.literal("addAlly")
-                                .then(ClientCommandManager.argument("UUID", StringArgumentType.word())
-                                        .executes(ctx -> addAllyPlayer(ctx, StringArgumentType.getString(ctx, "UUID")))))
+                        // /add <name>
+                        .then(ClientCommandManager.literal("add")
+                                .then(ClientCommandManager.literal("ally")
+                                    .then(ClientCommandManager.argument("UUID", StringArgumentType.word())
+                                            .executes(ctx -> addAllyPlayer(ctx, StringArgumentType.getString(ctx, "UUID")))))
+                                .then(ClientCommandManager.literal("target")
+                                        .then(ClientCommandManager.argument("UUID", StringArgumentType.word())
+                                                .executes(ctx -> addTargetPlayer(ctx, StringArgumentType.getString(ctx, "UUID"))))))
 
-                        .then(ClientCommandManager.literal("addTarget")
-                                .then(ClientCommandManager.argument("UUID", StringArgumentType.word())
-                                        .executes(ctx -> addTargetPlayer(ctx, StringArgumentType.getString(ctx, "UUID")))))
-
-                        // /partner remove <name>
+                        // /remove <name>
                         .then(ClientCommandManager.literal("remove")
                                 .then(ClientCommandManager.argument("UUID", StringArgumentType.word())
-                                        .suggests(KNOWN_PLAYERS)
+                                        .suggests(LIST_PLAYERS)
                                         .executes(ctx -> removePlayer(ctx, StringArgumentType.getString(ctx, "UUID")))))
 
-                        // /partner clear
-                        .then(ClientCommandManager.literal("clear")
-                                .executes(SelectiumCommand::clearPlayers))
-
-                        // /partner help  (also default)
+                        // /help  (also default)
                         .then(ClientCommandManager.literal("help")
                                 .executes(SelectiumCommand::showHelp))
 
@@ -67,76 +65,68 @@ public class SelectiumCommand {
         try
         {
             UUID playerUUID = UUID.fromString(stringUUID);
-            if (PlayerListConfig.addPerList(playerUUID, PlayerListConfig.Category.ALLY))
+            if (PlayerListConfig.addPvtList(playerUUID, PlayerListConfig.Category.ALLY))
             {
-                reply(ctx, Formatting.GRAY,playerUUID + " added as ally to personal list.");
+                chatMessage(ctx,playerUUID + " added as ally to personal list.", Formatting.GRAY);
             }
             else
             {
-                reply(ctx, Formatting.YELLOW, playerUUID + " replaced as ally in personal list.");
+                chatMessage(ctx, playerUUID + " replaced as ally in personal list.", Formatting.YELLOW);
             }
         }
         catch (Exception e)
         {
-            reply(ctx, Formatting.RED, "invalid UUID.");
+            chatMessage(ctx, "invalid UUID.", Formatting.RED);
         }
 
         return 1;
     }
 
-    private static int addTargetPlayer(CommandContext<FabricClientCommandSource> ctx, String stringUUID) {
+    private static int addTargetPlayer(CommandContext<FabricClientCommandSource> ctx, String stringUUID)
+    {
         try
         {
             UUID playerUUID = UUID.fromString(stringUUID);
-            if (PlayerListConfig.addPerList(playerUUID, PlayerListConfig.Category.TARGET))
+            if (PlayerListConfig.addPvtList(playerUUID, PlayerListConfig.Category.TARGET))
             {
-                reply(ctx, Formatting.GRAY,playerUUID + " added as target to personal list.");
+                chatMessage(ctx,playerUUID + " added as target to personal list.", Formatting.GRAY);
             }
             else
             {
-                reply(ctx, Formatting.YELLOW, playerUUID + " replaced as target in personal list.");
+                chatMessage(ctx, playerUUID + " replaced as target in personal list.", Formatting.YELLOW);
             }
         }
         catch (Exception e)
         {
-            reply(ctx, Formatting.RED, "invalid UUID.");
+            chatMessage(ctx, "invalid UUID.", Formatting.RED);
         }
 
         return 1;
     }
 
-    private static int removePlayer(CommandContext<FabricClientCommandSource> ctx, String stringUUID) {
+    private static int removePlayer(CommandContext<FabricClientCommandSource> ctx, String stringUUID)
+    {
         try {
             UUID playerUUID = UUID.fromString(stringUUID);
-            if (PlayerListConfig.removePerList(playerUUID)) {
-                reply(ctx, Formatting.GRAY, playerUUID + " removed from personal list.");
+            if (PlayerListConfig.removePvtList(playerUUID)) {
+                chatMessage(ctx, playerUUID + " removed from personal list.", Formatting.GRAY);
             } else {
-                reply(ctx, Formatting.RED, playerUUID + " was not in your personal list.");
+                chatMessage(ctx, playerUUID + " was not in your personal list.", Formatting.RED);
             }
         }
         catch (Exception e)
         {
-            reply(ctx, Formatting.RED, "invalid UUID.");
+            chatMessage(ctx, "invalid UUID.", Formatting.RED);
         }
-        return 1;
-    }
-
-    private static int clearPlayers(CommandContext<FabricClientCommandSource> ctx) {
-        PlayerListConfig.clearPerList();
-        reply(ctx, Formatting.GRAY, "removed all players from personal list.");
         return 1;
     }
 
     private static int showHelp(CommandContext<FabricClientCommandSource> ctx) {
-        ctx.getSource().sendFeedback(header("Selectium Mod — Commands"));
+        chatHeader(ctx, "Selectium Mod — Commands", Formatting.YELLOW);
 
         String[][] cmds = {
-                {"/partner add <name>",         "Mark a player as a partner"},
-                {"/partner remove <name>",      "Un-mark a partner"},
-                {"/partner list",               "Show all partners & settings"},
-                {"/partner clear",              "Remove all partners"},
-                {"/partner color <RRGGBB>",     "Change highlight colour"},
-                {"/partner particles <on|off>", "Toggle floating particles"},
+                {"/selectium add <UUID>",         "Add player to list"},
+                {"/selectium remove <UUID>",      "Remove player from list"},
         };
 
         for (String[] cmd : cmds) {
@@ -152,15 +142,18 @@ public class SelectiumCommand {
 
     // ── Formatting helpers ─────────────────────────────────────────────────
 
-    private static MutableText header(String title) {
-        return Text.literal("━━━ ")
+    private static void chatHeader(CommandContext<FabricClientCommandSource> ctx, String title, Formatting color)
+    {
+        ctx.getSource().sendFeedback(
+                Text.literal("━━━ ")
                 .formatted(Formatting.GOLD)
-                .append(Text.literal(title).formatted(Formatting.YELLOW, Formatting.BOLD))
-                .append(Text.literal(" ━━━").formatted(Formatting.GOLD));
+                .append(Text.literal(title).formatted(color, Formatting.BOLD))
+                .append(Text.literal(" ━━━").formatted(Formatting.GOLD))
+        );
     }
 
-    private static void reply(CommandContext<FabricClientCommandSource> ctx,
-                              Formatting color, String message) {
+    private static void chatMessage(CommandContext<FabricClientCommandSource> ctx, String message, Formatting color)
+    {
         ctx.getSource().sendFeedback(
                 Text.literal("[Selectium] ")
                         .formatted(Formatting.GOLD)
