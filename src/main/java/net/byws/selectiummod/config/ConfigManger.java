@@ -2,8 +2,7 @@ package net.byws.selectiummod.config;
 
 import com.google.gson.*;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.util.Formatting;
-
+import net.minecraft.ChatFormatting;
 import java.io.FileWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -120,13 +119,13 @@ public class ConfigManger
         };
     }
 
-    public static Formatting getPlayerColorFormatting(UUID playerUUID)
+    public static ChatFormatting getPlayerColorFormatting(UUID playerUUID)
     {
         return switch(checkLists(playerUUID))
         {
             case null -> null;
-            case ALLY -> Formatting.GREEN;
-            case TARGET -> Formatting.RED;
+            case ALLY -> ChatFormatting.GREEN;
+            case TARGET -> ChatFormatting.RED;
         };
     }
 

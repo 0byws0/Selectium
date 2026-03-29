@@ -2,27 +2,27 @@ package net.byws.selectiummod.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import net.byws.selectiummod.config.ConfigManger;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
-@Mixin(PlayerEntity.class)
+@Mixin(Player.class)
 public abstract class PlayerEntityMixin
 {
     @ModifyReturnValue(method = "getDisplayName", at = @At("RETURN"))
-    private Text overrideNameColor(Text original)
+    private Component overrideNameColor(Component original)
     {
         if (ConfigManger.getEnableNameColor())
         {
-            PlayerEntity player = (PlayerEntity) (Object) this;
+            Player player = (Player) (Object) this;
 
-            Formatting playerName = ConfigManger.getPlayerColorFormatting(player.getGameProfile().getId());
-            MutableText mutableText = (MutableText) original;
+            ChatFormatting playerName = ConfigManger.getPlayerColorFormatting(player.getGameProfile().getId());
+            MutableComponent mutableText = (MutableComponent) original;
 
-            if (playerName != null) mutableText.formatted(playerName);
+            if (playerName != null) mutableText.withStyle(playerName);
 
             return mutableText;
         }

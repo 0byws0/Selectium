@@ -8,10 +8,8 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import net.byws.selectiummod.config.ConfigManger;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.*;
-import net.minecraft.util.Formatting;
-
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 import java.util.UUID;
 
 public class SelectiumCommand {
@@ -77,16 +75,16 @@ public class SelectiumCommand {
             UUID playerUUID = UUID.fromString(stringUUID);
             if (ConfigManger.addPvtList(playerUUID, type))
             {
-                chatMessage(ctx,playerUUID + " added as " + type.name() + " to personal list", Formatting.GRAY);
+                chatMessage(ctx,playerUUID + " added as " + type.name() + " to personal list", ChatFormatting.GRAY);
             }
             else
             {
-                chatMessage(ctx, playerUUID + " replaced as " + type.name() + " in personal list", Formatting.YELLOW);
+                chatMessage(ctx, playerUUID + " replaced as " + type.name() + " in personal list", ChatFormatting.YELLOW);
             }
         }
         catch (Exception e)
         {
-            chatMessage(ctx, "invalid UUID", Formatting.RED);
+            chatMessage(ctx, "Invalid UUID", ChatFormatting.RED);
         }
 
         return 1;
@@ -99,16 +97,16 @@ public class SelectiumCommand {
             UUID playerUUID = UUID.fromString(stringUUID);
             if (ConfigManger.removePvtList(playerUUID))
             {
-                chatMessage(ctx, playerUUID + " removed from personal list", Formatting.GRAY);
+                chatMessage(ctx, playerUUID + " removed from personal list", ChatFormatting.GRAY);
             }
             else
             {
-                chatMessage(ctx, playerUUID + " was not in your personal list", Formatting.RED);
+                chatMessage(ctx, playerUUID + " was not in your personal list", ChatFormatting.RED);
             }
         }
         catch (Exception e)
         {
-            chatMessage(ctx, "invalid UUID", Formatting.RED);
+            chatMessage(ctx, "Invalid UUID", ChatFormatting.RED);
         }
         return 1;
     }
@@ -116,32 +114,31 @@ public class SelectiumCommand {
     private static int enableOutline(CommandContext<FabricClientCommandSource> ctx, boolean enable)
     {
         ConfigManger.setEnableOutline(enable);
-        chatMessage(ctx, "player outlines " + ((enable) ? "shown" : "hidden"), Formatting.GRAY);
+        chatMessage(ctx, "Player outlines " + ((enable) ? "shown" : "hidden"), ChatFormatting.GRAY);
         return 1;
     }
 
     private static int enableNameColor(CommandContext<FabricClientCommandSource> ctx, boolean enable)
     {
         ConfigManger.setEnableNameColor(enable);
-        chatMessage(ctx, "player name colors " + ((enable) ? "shown" : "hidden"), Formatting.GRAY);
+        chatMessage(ctx, "Player name colors " + ((enable) ? "shown" : "hidden"), ChatFormatting.GRAY);
         return 1;
     }
 
     private static int showHelp(CommandContext<FabricClientCommandSource> ctx) {
-        chatHeader(ctx, MinecraftClient.getInstance().player.getUuidAsString(), Formatting.BLUE);
-        chatHeader(ctx, "Selectium Mod — Commands", Formatting.YELLOW);
+        chatHeader(ctx, "Selectium Mod — Commands", ChatFormatting.YELLOW);
 
         String[][] cmds = {
-                {"/selectium add <UUID>",         "Add player to list"},
-                {"/selectium remove <UUID>",      "Remove player from list"},
-                {"/selectium showOutline <true/false>",      "show or hide player outlines"},
-                {"/selectium showNameColor <true/false>",      "show or hide player name colors"},
+                {"/selectium listAdd <UUID>",         "Add player to personal list"},
+                {"/selectium listRemove <UUID>",      "Remove player from personal list"},
+                {"/selectium showOutline <true/false>",      "Enable or disable player outlines"},
+                {"/selectium showNameColor <true/false>",      "Enable or disable player name colors"},
         };
 
         for (String[] cmd : cmds) {
             ctx.getSource().sendFeedback(
-                    Text.literal("  " + cmd[0]).formatted(Formatting.YELLOW)
-                            .append(Text.literal("  — " + cmd[1]).formatted(Formatting.GRAY))
+                    Component.literal("  " + cmd[0]).withStyle(ChatFormatting.YELLOW)
+                            .append(Component.literal("  — " + cmd[1]).withStyle(ChatFormatting.GRAY))
             );
         }
         return 1;
@@ -149,22 +146,22 @@ public class SelectiumCommand {
 
     // ── Formatting helpers ─────────────────────────────────────────────────
 
-    private static void chatHeader(CommandContext<FabricClientCommandSource> ctx, String title, Formatting color)
+    private static void chatHeader(CommandContext<FabricClientCommandSource> ctx, String title, ChatFormatting color)
     {
         ctx.getSource().sendFeedback(
-                Text.literal("━━━ ")
-                .formatted(Formatting.GOLD)
-                .append(Text.literal(title).formatted(color, Formatting.BOLD))
-                .append(Text.literal(" ━━━").formatted(Formatting.GOLD))
+                Component.literal("━━━ ")
+                .withStyle(ChatFormatting.GOLD)
+                .append(Component.literal(title).withStyle(color, ChatFormatting.BOLD))
+                .append(Component.literal(" ━━━").withStyle(ChatFormatting.GOLD))
         );
     }
 
-    private static void chatMessage(CommandContext<FabricClientCommandSource> ctx, String message, Formatting color)
+    private static void chatMessage(CommandContext<FabricClientCommandSource> ctx, String message, ChatFormatting color)
     {
         ctx.getSource().sendFeedback(
-                Text.literal("[Selectium] ")
-                        .formatted(Formatting.GOLD)
-                        .append(Text.literal(message).formatted(color))
+                Component.literal("[Selectium] ")
+                        .withStyle(ChatFormatting.GOLD)
+                        .append(Component.literal(message).withStyle(color))
         );
     }
 }

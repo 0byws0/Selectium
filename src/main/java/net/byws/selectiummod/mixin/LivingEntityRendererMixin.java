@@ -1,14 +1,18 @@
 package net.byws.selectiummod.mixin;
 
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.byws.selectiummod.config.ConfigManger;
 
 import net.byws.selectiummod.render.OutlineRender;
-import net.minecraft.client.render.*;
-import net.minecraft.client.render.entity.LivingEntityRenderer;
-import net.minecraft.client.render.entity.model.EntityModel;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.client.model.EntityModel;
+import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.entity.LivingEntityRenderer;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -18,10 +22,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class LivingEntityRendererMixin<T extends LivingEntity, M extends EntityModel<T>>
 {
     @Inject(
-            method = "render(Lnet/minecraft/entity/LivingEntity;FFLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;I)V",
+            method = "render",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/render/entity/model/EntityModel;render(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumer;III)V",
+                    target = "Lnet/minecraft/client/model/EntityModel;renderToBuffer(Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;III)V",
                     shift = At.Shift.AFTER
             )
     )
@@ -29,29 +33,29 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, M extend
             T entity,
             float yaw,
             float tickDelta,
-            MatrixStack matrices,
-            VertexConsumerProvider vertexConsumers,
+            PoseStack matrices,
+            MultiBufferSource vertexConsumers,
             int light,
             CallbackInfo ci)
     {
         if (!ConfigManger.getEnableOutline()) return;
-        if (!(entity instanceof PlayerEntity player)) return;
+        if (!(entity instanceof Player player)) return;
 
         Integer playerOutline = ConfigManger.getPlayerColorRGBA(player.getGameProfile().getId());
 
         if (playerOutline != null)
         {
-            matrices.push();
+            matrices.pushPose();
             matrices.scale(1.03f, 1.01f, 1.03f);
 
             LivingEntityRenderer playerRender = ((LivingEntityRenderer) (Object) this);
 
-            RenderLayer outlineLayer = OutlineRender.getFrontCullOutline(playerRender.getTexture(entity));
+            RenderType outlineLayer = OutlineRender.getFrontCullOutline(playerRender.getTextureLocation(entity));
             VertexConsumer consumer = vertexConsumers.getBuffer(outlineLayer);
 
-            playerRender.getModel().render(matrices, consumer, LightmapTextureManager.MAX_LIGHT_COORDINATE, OverlayTexture.DEFAULT_UV, playerOutline);
+            playerRender.getModel().renderToBuffer(matrices, consumer, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY, playerOutline);
 
-            matrices.pop();
+            matrices.popPose();
         }
     }
 }
