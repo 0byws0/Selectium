@@ -1,35 +1,34 @@
 package net.byws.selectiummod.mixin;
 
-import net.byws.selectiummod.config.PlayerListConfig;
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import net.byws.selectiummod.config.ConfigManger;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.text.HoverEvent;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(PlayerEntity.class)
 public abstract class PlayerEntityMixin
 {
-//    @Shadow
-//    protected abstract HoverEvent getHoverEvent();
-
-    @Inject(method = "getDisplayName", at = @At("HEAD"), cancellable = true)
-    private void overrideNameColor(CallbackInfoReturnable<Text> cir)
+    @ModifyReturnValue(method = "getDisplayName", at = @At("RETURN"))
+    private Text overrideNameColor(Text original)
     {
-        PlayerEntity player = (PlayerEntity)(Object)this;
-
-        Formatting playerName = PlayerListConfig.getPlayerColorFormatting(player.getGameProfile().getId());
-
-        if (playerName != null)
+        if (ConfigManger.getEnableNameColor())
         {
-            MutableText mutableText = Text.empty().append(player.getName());
+            PlayerEntity player = (PlayerEntity) (Object) this;
 
-            cir.setReturnValue(mutableText.formatted(playerName));
+            Formatting playerName = ConfigManger.getPlayerColorFormatting(player.getGameProfile().getId());
+            MutableText mutableText = (MutableText) original;
+
+            if (playerName != null) mutableText.formatted(playerName);
+
+            return mutableText;
+        }
+        else
+        {
+            return original;
         }
     }
 }

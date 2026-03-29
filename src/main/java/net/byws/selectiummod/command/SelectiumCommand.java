@@ -1,12 +1,14 @@
 package net.byws.selectiummod.command;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
-import net.byws.selectiummod.config.PlayerListConfig;
+import net.byws.selectiummod.config.ConfigManger;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.*;
 import net.minecraft.util.Formatting;
 
@@ -20,10 +22,8 @@ public class SelectiumCommand {
     private static final SuggestionProvider<FabricClientCommandSource> LIST_PLAYERS =
             (ctx, builder) ->
             {
-                for (UUID p : PlayerListConfig.getPvtList().keySet())
-                {
-                    builder.suggest(p.toString());
-                }
+                for (UUID p : ConfigManger.getPvtList().keySet()) builder.suggest(p.toString());
+
                 return builder.buildFuture();
             };
 
@@ -35,20 +35,30 @@ public class SelectiumCommand {
         dispatcher.register(
                 ClientCommandManager.literal("selectium")
 
-                        // /add <name>
-                        .then(ClientCommandManager.literal("add")
-                                .then(ClientCommandManager.literal("ally")
+                        // /add <UUID>
+                        .then(ClientCommandManager.literal("listAdd")
+                                .then(ClientCommandManager.literal("ALLY")
                                     .then(ClientCommandManager.argument("UUID", StringArgumentType.word())
-                                            .executes(ctx -> addAllyPlayer(ctx, StringArgumentType.getString(ctx, "UUID")))))
-                                .then(ClientCommandManager.literal("target")
+                                            .executes(ctx -> addPlayer(ctx, StringArgumentType.getString(ctx, "UUID"), ConfigManger.Category.ALLY))))
+                                .then(ClientCommandManager.literal("TARGET")
                                         .then(ClientCommandManager.argument("UUID", StringArgumentType.word())
-                                                .executes(ctx -> addTargetPlayer(ctx, StringArgumentType.getString(ctx, "UUID"))))))
+                                                .executes(ctx -> addPlayer(ctx, StringArgumentType.getString(ctx, "UUID"), ConfigManger.Category.TARGET)))))
 
-                        // /remove <name>
-                        .then(ClientCommandManager.literal("remove")
+                        // /remove <UUID>
+                        .then(ClientCommandManager.literal("listRemove")
                                 .then(ClientCommandManager.argument("UUID", StringArgumentType.word())
                                         .suggests(LIST_PLAYERS)
                                         .executes(ctx -> removePlayer(ctx, StringArgumentType.getString(ctx, "UUID")))))
+
+                        // /showOutline <Boolean>
+                        .then(ClientCommandManager.literal("showOutline")
+                                .then(ClientCommandManager.argument("true/false", BoolArgumentType.bool())
+                                        .executes(ctx -> enableOutline(ctx, BoolArgumentType.getBool(ctx, "true/false")))))
+
+                        // /showNameColor <Boolean>
+                        .then(ClientCommandManager.literal("showNameColor")
+                                .then(ClientCommandManager.argument("true/false", BoolArgumentType.bool())
+                                        .executes(ctx -> enableNameColor(ctx, BoolArgumentType.getBool(ctx, "true/false")))))
 
                         // /help  (also default)
                         .then(ClientCommandManager.literal("help")
@@ -60,45 +70,23 @@ public class SelectiumCommand {
 
     // ── Handlers ───────────────────────────────────────────────────────────
 
-    private static int addAllyPlayer(CommandContext<FabricClientCommandSource> ctx, String stringUUID)
+    private static int addPlayer(CommandContext<FabricClientCommandSource> ctx, String stringUUID, ConfigManger.Category type)
     {
         try
         {
             UUID playerUUID = UUID.fromString(stringUUID);
-            if (PlayerListConfig.addPvtList(playerUUID, PlayerListConfig.Category.ALLY))
+            if (ConfigManger.addPvtList(playerUUID, type))
             {
-                chatMessage(ctx,playerUUID + " added as ally to personal list.", Formatting.GRAY);
+                chatMessage(ctx,playerUUID + " added as " + type.name() + " to personal list", Formatting.GRAY);
             }
             else
             {
-                chatMessage(ctx, playerUUID + " replaced as ally in personal list.", Formatting.YELLOW);
+                chatMessage(ctx, playerUUID + " replaced as " + type.name() + " in personal list", Formatting.YELLOW);
             }
         }
         catch (Exception e)
         {
-            chatMessage(ctx, "invalid UUID.", Formatting.RED);
-        }
-
-        return 1;
-    }
-
-    private static int addTargetPlayer(CommandContext<FabricClientCommandSource> ctx, String stringUUID)
-    {
-        try
-        {
-            UUID playerUUID = UUID.fromString(stringUUID);
-            if (PlayerListConfig.addPvtList(playerUUID, PlayerListConfig.Category.TARGET))
-            {
-                chatMessage(ctx,playerUUID + " added as target to personal list.", Formatting.GRAY);
-            }
-            else
-            {
-                chatMessage(ctx, playerUUID + " replaced as target in personal list.", Formatting.YELLOW);
-            }
-        }
-        catch (Exception e)
-        {
-            chatMessage(ctx, "invalid UUID.", Formatting.RED);
+            chatMessage(ctx, "invalid UUID", Formatting.RED);
         }
 
         return 1;
@@ -106,35 +94,54 @@ public class SelectiumCommand {
 
     private static int removePlayer(CommandContext<FabricClientCommandSource> ctx, String stringUUID)
     {
-        try {
+        try
+        {
             UUID playerUUID = UUID.fromString(stringUUID);
-            if (PlayerListConfig.removePvtList(playerUUID)) {
-                chatMessage(ctx, playerUUID + " removed from personal list.", Formatting.GRAY);
-            } else {
-                chatMessage(ctx, playerUUID + " was not in your personal list.", Formatting.RED);
+            if (ConfigManger.removePvtList(playerUUID))
+            {
+                chatMessage(ctx, playerUUID + " removed from personal list", Formatting.GRAY);
+            }
+            else
+            {
+                chatMessage(ctx, playerUUID + " was not in your personal list", Formatting.RED);
             }
         }
         catch (Exception e)
         {
-            chatMessage(ctx, "invalid UUID.", Formatting.RED);
+            chatMessage(ctx, "invalid UUID", Formatting.RED);
         }
         return 1;
     }
 
+    private static int enableOutline(CommandContext<FabricClientCommandSource> ctx, boolean enable)
+    {
+        ConfigManger.setEnableOutline(enable);
+        chatMessage(ctx, "player outlines " + ((enable) ? "shown" : "hidden"), Formatting.GRAY);
+        return 1;
+    }
+
+    private static int enableNameColor(CommandContext<FabricClientCommandSource> ctx, boolean enable)
+    {
+        ConfigManger.setEnableNameColor(enable);
+        chatMessage(ctx, "player name colors " + ((enable) ? "shown" : "hidden"), Formatting.GRAY);
+        return 1;
+    }
+
     private static int showHelp(CommandContext<FabricClientCommandSource> ctx) {
+        chatHeader(ctx, MinecraftClient.getInstance().player.getUuidAsString(), Formatting.BLUE);
         chatHeader(ctx, "Selectium Mod — Commands", Formatting.YELLOW);
 
         String[][] cmds = {
                 {"/selectium add <UUID>",         "Add player to list"},
                 {"/selectium remove <UUID>",      "Remove player from list"},
+                {"/selectium showOutline <true/false>",      "show or hide player outlines"},
+                {"/selectium showNameColor <true/false>",      "show or hide player name colors"},
         };
 
         for (String[] cmd : cmds) {
             ctx.getSource().sendFeedback(
-                    Text.literal("  " + cmd[0])
-                            .formatted(Formatting.YELLOW)
-                            .append(Text.literal("  — " + cmd[1])
-                                    .formatted(Formatting.GRAY))
+                    Text.literal("  " + cmd[0]).formatted(Formatting.YELLOW)
+                            .append(Text.literal("  — " + cmd[1]).formatted(Formatting.GRAY))
             );
         }
         return 1;

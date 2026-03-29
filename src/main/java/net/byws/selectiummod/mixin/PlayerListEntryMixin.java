@@ -1,7 +1,6 @@
 package net.byws.selectiummod.mixin;
 
-import com.mojang.authlib.GameProfile;
-import net.byws.selectiummod.config.PlayerListConfig;
+import net.byws.selectiummod.config.ConfigManger;
 import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
@@ -18,7 +17,7 @@ public abstract class PlayerListEntryMixin
     private void overrideNameColor(CallbackInfoReturnable<Text> cir)
     {
         PlayerListEntry playerEntry = (PlayerListEntry)(Object)this;
-        Formatting playerName = PlayerListConfig.getPlayerColorFormatting(playerEntry.getProfile().getId());
+        Formatting playerName = ConfigManger.getPlayerColorFormatting(playerEntry.getProfile().getId());
 
         if (playerName != null)
         {

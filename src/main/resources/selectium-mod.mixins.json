@@ -5,7 +5,7 @@
 	"mixins": [
 		"LivingEntityRendererMixin",
 		"PlayerEntityMixin",
-		"PlayerListEntryMixin"
+		"PlayerListHudMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

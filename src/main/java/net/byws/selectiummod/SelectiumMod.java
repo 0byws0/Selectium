@@ -1,7 +1,7 @@
 package net.byws.selectiummod;
 
 import net.byws.selectiummod.command.SelectiumCommand;
-import net.byws.selectiummod.config.PlayerListConfig;
+import net.byws.selectiummod.config.ConfigManger;
 import net.fabricmc.api.ModInitializer;
 
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
@@ -25,7 +25,7 @@ public class SelectiumMod implements ModInitializer
 		// However, some things (like resources) may still be uninitialized.
 		// Proceed with mild caution.
 
-		PlayerListConfig.load();
+		ConfigManger.load();
 
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
 				SelectiumCommand.register(dispatcher));

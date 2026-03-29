@@ -1,6 +1,7 @@
 package net.byws.selectiummod.mixin;
 
-import net.byws.selectiummod.config.PlayerListConfig;
+import net.byws.selectiummod.config.ConfigManger;
+
 import net.byws.selectiummod.render.OutlineRender;
 import net.minecraft.client.render.*;
 import net.minecraft.client.render.entity.LivingEntityRenderer;
@@ -33,12 +34,13 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, M extend
             int light,
             CallbackInfo ci)
     {
+        if (!ConfigManger.getEnableOutline()) return;
         if (!(entity instanceof PlayerEntity player)) return;
 
-        Integer playerOutline = PlayerListConfig.getPlayerColorRGBA(player.getGameProfile().getId());
+        Integer playerOutline = ConfigManger.getPlayerColorRGBA(player.getGameProfile().getId());
 
-        if (playerOutline != null) {
-
+        if (playerOutline != null)
+        {
             matrices.push();
             matrices.scale(1.03f, 1.01f, 1.03f);
 
