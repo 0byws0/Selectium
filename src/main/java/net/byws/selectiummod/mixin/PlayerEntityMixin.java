@@ -19,10 +19,17 @@ public abstract class PlayerEntityMixin
         {
             Player player = (Player) (Object) this;
 
-            ChatFormatting playerName = ConfigManger.getPlayerColorFormatting(player.getGameProfile().getId());
+            ChatFormatting playerName = ConfigManger.getPlayerColorFormatting(player.getGameProfile().id());
             MutableComponent mutableText = (MutableComponent) original;
 
-            if (playerName != null) mutableText.withStyle(playerName);
+            if (playerName != null)
+            {
+                mutableText.withStyle(playerName);
+            }
+            else
+            {
+                mutableText.withStyle(ChatFormatting.WHITE);
+            }
 
             return mutableText;
         }

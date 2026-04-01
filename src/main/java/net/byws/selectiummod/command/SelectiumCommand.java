@@ -38,6 +38,9 @@ public class SelectiumCommand {
                                 .then(ClientCommandManager.literal("ALLY")
                                     .then(ClientCommandManager.argument("UUID", StringArgumentType.word())
                                             .executes(ctx -> addPlayer(ctx, StringArgumentType.getString(ctx, "UUID"), ConfigManger.Category.ALLY))))
+                                .then(ClientCommandManager.literal("NEUTRAL")
+                                        .then(ClientCommandManager.argument("UUID", StringArgumentType.word())
+                                                .executes(ctx -> addPlayer(ctx, StringArgumentType.getString(ctx, "UUID"), ConfigManger.Category.NEUTRAL))))
                                 .then(ClientCommandManager.literal("TARGET")
                                         .then(ClientCommandManager.argument("UUID", StringArgumentType.word())
                                                 .executes(ctx -> addPlayer(ctx, StringArgumentType.getString(ctx, "UUID"), ConfigManger.Category.TARGET)))))
@@ -57,6 +60,9 @@ public class SelectiumCommand {
                         .then(ClientCommandManager.literal("showNameColor")
                                 .then(ClientCommandManager.argument("true/false", BoolArgumentType.bool())
                                         .executes(ctx -> enableNameColor(ctx, BoolArgumentType.getBool(ctx, "true/false")))))
+
+                        .then(ClientCommandManager.literal("reset")
+                                .executes(SelectiumCommand::resetList))
 
                         // /help  (also default)
                         .then(ClientCommandManager.literal("help")
@@ -125,14 +131,22 @@ public class SelectiumCommand {
         return 1;
     }
 
+    private static int resetList(CommandContext<FabricClientCommandSource> ctx)
+    {
+        ConfigManger.load(true);
+        chatMessage(ctx, "Player list reset", ChatFormatting.GRAY);
+        return 1;
+    }
+
     private static int showHelp(CommandContext<FabricClientCommandSource> ctx) {
         chatHeader(ctx, "Selectium Mod — Commands", ChatFormatting.YELLOW);
 
         String[][] cmds = {
-                {"/selectium listAdd <UUID>",         "Add player to personal list"},
-                {"/selectium listRemove <UUID>",      "Remove player from personal list"},
-                {"/selectium showOutline <true/false>",      "Enable or disable player outlines"},
-                {"/selectium showNameColor <true/false>",      "Enable or disable player name colors"},
+                {"/selectium listAdd <UUID>", "Add player to personal list"},
+                {"/selectium listRemove <UUID>", "Remove player from personal list"},
+                {"/selectium showOutline <true/false>", "Enable or disable player outlines"},
+                {"/selectium showNameColor <true/false>", "Enable or disable player name colors"},
+                {"/selectium reset", "Reset list to default"},
         };
 
         for (String[] cmd : cmds) {

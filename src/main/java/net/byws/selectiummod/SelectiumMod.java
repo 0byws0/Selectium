@@ -25,7 +25,7 @@ public class SelectiumMod implements ModInitializer
 		// However, some things (like resources) may still be uninitialized.
 		// Proceed with mild caution.
 
-		ConfigManger.load();
+		ConfigManger.init(MOD_ID);
 
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
 				SelectiumCommand.register(dispatcher));
