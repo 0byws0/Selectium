@@ -4,7 +4,6 @@ import net.byws.selectiummod.config.ConfigManger;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.ChatFormatting;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -19,10 +18,15 @@ public abstract class PlayerInfoMixin
         if (ConfigManger.getEnableNameColor())
         {
             PlayerInfo playerInfo = (PlayerInfo)(Object)this;
-            ChatFormatting playerName = ConfigManger.getPlayerColorFormatting(playerInfo.getProfile().id());
-            MutableComponent mutableText = Component.empty().append(playerInfo.getProfile().name());
+            String playerName = playerInfo.getProfile().getName();
+            ConfigManger.PlayerData playerData = ConfigManger.getPlayerData(playerName, playerInfo.getProfile().getId());
+            MutableComponent mutableText = Component.empty().append(playerName);
 
-            if (playerName != null) mutableText.withStyle(playerName);
+            if (playerData != null)
+            {
+                if (!playerName.equals(playerData.nickname)) mutableText.append("(" + playerData.nickname + ")");
+                mutableText.withStyle(ConfigManger.getPlayerColorFormatting(playerData.type));
+            }
 
             cir.setReturnValue(mutableText);
         }

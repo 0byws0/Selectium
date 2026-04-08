@@ -18,13 +18,14 @@ public abstract class PlayerEntityMixin
         if (ConfigManger.getEnableNameColor())
         {
             Player player = (Player) (Object) this;
-
-            ChatFormatting playerName = ConfigManger.getPlayerColorFormatting(player.getGameProfile().id());
+            String playerName = player.getGameProfile().getName();
+            ConfigManger.PlayerData playerData = ConfigManger.getPlayerData(playerName, player.getGameProfile().getId());
             MutableComponent mutableText = (MutableComponent) original;
 
-            if (playerName != null)
+            if (playerData != null)
             {
-                mutableText.withStyle(playerName);
+                if (!playerName.equals(playerData.nickname)) mutableText.append("(" + playerData.nickname + ")");
+                mutableText.withStyle(ConfigManger.getPlayerColorFormatting(playerData.type));
             }
             else
             {
@@ -33,9 +34,6 @@ public abstract class PlayerEntityMixin
 
             return mutableText;
         }
-        else
-        {
-            return original;
-        }
+        return original;
     }
 }

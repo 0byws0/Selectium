@@ -9,19 +9,31 @@ import net.byws.selectiummod.config.ConfigManger;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
 import java.util.UUID;
 
 public class SelectiumCommand {
 
     // ── Suggestions ────────────────────────────────────────────────────────
-
-    /** Suggests names already in the player list. */
-    private static final SuggestionProvider<FabricClientCommandSource> LIST_PLAYERS =
+    private static final SuggestionProvider<FabricClientCommandSource> ONLINE_PLAYER_NAMES =
             (ctx, builder) ->
             {
-                for (UUID p : ConfigManger.getPvtList().keySet()) builder.suggest(p.toString());
-
+                Minecraft mc = Minecraft.getInstance();
+                if (mc.getConnection() != null)
+                {
+                    mc.getConnection().getOnlinePlayers().stream()
+                            .map(entry -> entry.getProfile().getName())
+                            .forEach(builder::suggest);
+                }
+                return builder.buildFuture();
+            };
+    /** Suggests names already in the player list. */
+    private static final SuggestionProvider<FabricClientCommandSource> PLAYER_LIST_NAMES =
+            (ctx, builder) ->
+            {
+                for (String name : ConfigManger.getNamesList()) builder.suggest(name);
                 return builder.buildFuture();
             };
 
@@ -36,19 +48,22 @@ public class SelectiumCommand {
                         // /add <UUID>
                         .then(ClientCommandManager.literal("listAdd")
                                 .then(ClientCommandManager.literal("ALLY")
-                                    .then(ClientCommandManager.argument("UUID", StringArgumentType.word())
-                                            .executes(ctx -> addPlayer(ctx, StringArgumentType.getString(ctx, "UUID"), ConfigManger.Category.ALLY))))
+                                    .then(ClientCommandManager.argument("name/UUID", StringArgumentType.word())
+                                            .suggests(ONLINE_PLAYER_NAMES)
+                                            .executes(ctx -> addPlayer(ctx, StringArgumentType.getString(ctx, "name/UUID"), ConfigManger.Category.ALLY))))
                                 .then(ClientCommandManager.literal("NEUTRAL")
-                                        .then(ClientCommandManager.argument("UUID", StringArgumentType.word())
-                                                .executes(ctx -> addPlayer(ctx, StringArgumentType.getString(ctx, "UUID"), ConfigManger.Category.NEUTRAL))))
+                                        .then(ClientCommandManager.argument("name/UUID", StringArgumentType.word())
+                                                .suggests(ONLINE_PLAYER_NAMES)
+                                                .executes(ctx -> addPlayer(ctx, StringArgumentType.getString(ctx, "name/UUID"), ConfigManger.Category.NEUTRAL))))
                                 .then(ClientCommandManager.literal("TARGET")
-                                        .then(ClientCommandManager.argument("UUID", StringArgumentType.word())
-                                                .executes(ctx -> addPlayer(ctx, StringArgumentType.getString(ctx, "UUID"), ConfigManger.Category.TARGET)))))
+                                        .then(ClientCommandManager.argument("name/UUID", StringArgumentType.word())
+                                                .suggests(ONLINE_PLAYER_NAMES)
+                                                .executes(ctx -> addPlayer(ctx, StringArgumentType.getString(ctx, "name/UUID"), ConfigManger.Category.TARGET)))))
 
                         // /remove <UUID>
                         .then(ClientCommandManager.literal("listRemove")
                                 .then(ClientCommandManager.argument("UUID", StringArgumentType.word())
-                                        .suggests(LIST_PLAYERS)
+                                        .suggests(PLAYER_LIST_NAMES)
                                         .executes(ctx -> removePlayer(ctx, StringArgumentType.getString(ctx, "UUID")))))
 
                         // /showOutline <Boolean>
@@ -74,18 +89,29 @@ public class SelectiumCommand {
 
     // ── Handlers ───────────────────────────────────────────────────────────
 
-    private static int addPlayer(CommandContext<FabricClientCommandSource> ctx, String stringUUID, ConfigManger.Category type)
+    private static int addPlayer(CommandContext<FabricClientCommandSource> ctx, String input, ConfigManger.Category type)
     {
         try
         {
-            UUID playerUUID = UUID.fromString(stringUUID);
-            if (ConfigManger.addPvtList(playerUUID, type))
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.getConnection() != null)
             {
-                chatMessage(ctx,playerUUID + " added as " + type.name() + " to personal list", ChatFormatting.GRAY);
+                for (PlayerInfo p: mc.getConnection().getOnlinePlayers())
+                {
+                    if (p.getProfile().getName().equals(input))
+                    {
+                        input = p.getProfile().getId().toString();
+                        break;
+                    }
+                }
+            }
+            if (ConfigManger.addListPlayer(UUID.fromString(input), type))
+            {
+                chatMessage(ctx,input + " added as " + type.name() + " to personal list", ChatFormatting.GRAY);
             }
             else
             {
-                chatMessage(ctx, playerUUID + " replaced as " + type.name() + " in personal list", ChatFormatting.YELLOW);
+                chatMessage(ctx, input + " replaced as " + type.name() + " in personal list", ChatFormatting.YELLOW);
             }
         }
         catch (Exception e)
@@ -96,18 +122,17 @@ public class SelectiumCommand {
         return 1;
     }
 
-    private static int removePlayer(CommandContext<FabricClientCommandSource> ctx, String stringUUID)
+    private static int removePlayer(CommandContext<FabricClientCommandSource> ctx, String input)
     {
         try
         {
-            UUID playerUUID = UUID.fromString(stringUUID);
-            if (ConfigManger.removePvtList(playerUUID))
+            if (ConfigManger.removeListPlayer(input) || ConfigManger.removeListPlayer(UUID.fromString(input)))
             {
-                chatMessage(ctx, playerUUID + " removed from personal list", ChatFormatting.GRAY);
+                chatMessage(ctx, input + " removed from personal list", ChatFormatting.GRAY);
             }
             else
             {
-                chatMessage(ctx, playerUUID + " was not in your personal list", ChatFormatting.RED);
+                chatMessage(ctx, input + " was not in your personal list", ChatFormatting.RED);
             }
         }
         catch (Exception e)
@@ -133,7 +158,7 @@ public class SelectiumCommand {
 
     private static int resetList(CommandContext<FabricClientCommandSource> ctx)
     {
-        ConfigManger.load(true);
+        ConfigManger.resetList();
         chatMessage(ctx, "Player list reset", ChatFormatting.GRAY);
         return 1;
     }
@@ -142,8 +167,8 @@ public class SelectiumCommand {
         chatHeader(ctx, "Selectium Mod — Commands", ChatFormatting.YELLOW);
 
         String[][] cmds = {
-                {"/selectium listAdd <UUID>", "Add player to personal list"},
-                {"/selectium listRemove <UUID>", "Remove player from personal list"},
+                {"/selectium listAdd <UUID>", "Add or replace player on list"},
+                {"/selectium listRemove <UUID>", "Remove player from list"},
                 {"/selectium showOutline <true/false>", "Enable or disable player outlines"},
                 {"/selectium showNameColor <true/false>", "Enable or disable player name colors"},
                 {"/selectium reset", "Reset list to default"},
