@@ -1,5 +1,6 @@
 package net.byws.selectiummod.mixin;
 
+import net.byws.selectiummod.config.ConfigJsonObj;
 import net.byws.selectiummod.config.ConfigManger;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
@@ -15,16 +16,17 @@ public abstract class PlayerInfoMixin
     @Inject(method = "getTabListDisplayName", at = @At("HEAD"), cancellable = true)
     private void overrideNameColor(CallbackInfoReturnable<Component> cir)
     {
-        if (ConfigManger.getEnableNameColor())
+        if (ConfigManger.getEnableNameInfo())
         {
             PlayerInfo playerInfo = (PlayerInfo)(Object)this;
+
             String playerName = playerInfo.getProfile().getName();
-            ConfigManger.PlayerData playerData = ConfigManger.getPlayerData(playerName, playerInfo.getProfile().getId());
+            ConfigJsonObj.PlayerData playerData = ConfigManger.getPlayerData(playerName, playerInfo.getProfile().getId());
             MutableComponent mutableText = Component.empty().append(playerName);
 
             if (playerData != null)
             {
-                if (!playerName.equals(playerData.nickname)) mutableText.append("(" + playerData.nickname + ")");
+                if (!playerName.equals(playerData.nickname)) mutableText.append(" (" + playerData.nickname + ")");
                 mutableText.withStyle(ConfigManger.getPlayerColorFormatting(playerData.type));
             }
 

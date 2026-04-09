@@ -1,6 +1,7 @@
 package net.byws.selectiummod.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import net.byws.selectiummod.config.ConfigJsonObj;
 import net.byws.selectiummod.config.ConfigManger;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -15,16 +16,17 @@ public abstract class PlayerEntityMixin
     @ModifyReturnValue(method = "getDisplayName", at = @At("RETURN"))
     private Component overrideNameColor(Component original)
     {
-        if (ConfigManger.getEnableNameColor())
+        if (ConfigManger.getEnableNameInfo())
         {
             Player player = (Player) (Object) this;
+
             String playerName = player.getGameProfile().getName();
-            ConfigManger.PlayerData playerData = ConfigManger.getPlayerData(playerName, player.getGameProfile().getId());
+            ConfigJsonObj.PlayerData playerData = ConfigManger.getPlayerData(playerName, player.getGameProfile().getId());
             MutableComponent mutableText = (MutableComponent) original;
 
             if (playerData != null)
             {
-                if (!playerName.equals(playerData.nickname)) mutableText.append("(" + playerData.nickname + ")");
+                if (!playerName.equals(playerData.nickname)) mutableText.append(" (" + playerData.nickname + ")");
                 mutableText.withStyle(ConfigManger.getPlayerColorFormatting(playerData.type));
             }
             else
