@@ -24,15 +24,24 @@ public class ConfigJsonObj
     }
 
     public HashMap<UUID, PlayerData> playerCatList;
-    public HashBiMap<String, UUID> playerNameList;
+    public HashMap<String, UUID> playerNameList;
     public boolean enableOutline;
     public boolean enableNameColor;
 
     public ConfigJsonObj()
     {
         playerCatList = new HashMap<>();
-        playerNameList = HashBiMap.create();
+        playerNameList = new HashMap<>();
         enableOutline = true;
         enableNameColor = true;
+    }
+
+    public String getNameFromList(UUID playerUUID)
+    {
+        for (HashMap.Entry<String, UUID> entry : playerNameList.entrySet())
+        {
+            if (entry.getValue().equals(playerUUID)) return entry.getKey();
+        }
+        return null;
     }
 }

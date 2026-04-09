@@ -29,7 +29,5 @@ public class SelectiumMod implements ModInitializer
 
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
 				SelectiumCommand.register(dispatcher));
-
-		LOGGER.info("Player List Loaded!");
 	}
 }

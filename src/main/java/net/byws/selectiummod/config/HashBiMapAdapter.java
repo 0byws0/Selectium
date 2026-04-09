@@ -9,13 +9,15 @@ import java.util.Map;
 public class HashBiMapAdapter<K, V> implements JsonSerializer<HashBiMap<K, V>>, JsonDeserializer<HashBiMap<K, V>> {
 
     @Override
-    public JsonElement serialize(HashBiMap<K, V> src, Type typeOfSrc, JsonSerializationContext context) {
+    public JsonElement serialize(HashBiMap<K, V> src, Type typeOfSrc, JsonSerializationContext context)
+    {
         // Convert BiMap to standard Map for JSON representation
         return context.serialize(src, Map.class);
     }
 
     @Override
-    public HashBiMap<K, V> deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+    public HashBiMap<K, V> deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException
+    {
         // Deserialize back to a standard Map and convert to HashBiMap
         Map<K, V> map = context.deserialize(json, new TypeToken<Map<K, V>>(){}.getType());
         return HashBiMap.create(map);

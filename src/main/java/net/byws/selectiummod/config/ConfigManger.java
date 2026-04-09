@@ -1,6 +1,5 @@
 package net.byws.selectiummod.config;
 
-import com.google.common.collect.HashBiMap;
 import com.google.gson.*;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.ChatFormatting;
@@ -11,6 +10,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.UUID;
 
 public class ConfigManger
@@ -29,7 +29,7 @@ public class ConfigManger
                 resetList();
             }
 
-            Gson gson = new GsonBuilder().registerTypeAdapter(HashBiMap.class, new HashBiMapAdapter()).create();
+            Gson gson = new Gson();
             config = gson.fromJson(Files.readString(CONFIG_PATH), ConfigJsonObj.class);
         }
         catch (IOException e)
@@ -40,7 +40,7 @@ public class ConfigManger
 
     private static void save()
     {
-        Gson gson = new GsonBuilder().registerTypeAdapter(HashBiMap.class, new HashBiMapAdapter()).create();
+        Gson gson = new Gson();
 
         try (FileWriter fw = new FileWriter(CONFIG_PATH.toFile()))
         {
@@ -212,7 +212,8 @@ public class ConfigManger
         }
         else if (config.playerNameList.get(playerName) != playerUUID)
         {
-            config.playerNameList.forcePut(playerName, playerUUID);
+            config.playerNameList.remove(config.getNameFromList(playerUUID));
+            config.playerNameList.put(playerName, playerUUID);
             saveToFile = true;
         }
 
@@ -278,7 +279,7 @@ public class ConfigManger
     public static boolean removeListPlayer(UUID playerUUID)
     {
         boolean containsPlayer = (config.playerCatList.remove(playerUUID) != null);
-        if (config.playerNameList.inverse().remove(playerUUID) != null || containsPlayer) save();
+        if (config.playerNameList.remove(config.getNameFromList(playerUUID)) != null || containsPlayer) save();
         return containsPlayer;
     }
 
