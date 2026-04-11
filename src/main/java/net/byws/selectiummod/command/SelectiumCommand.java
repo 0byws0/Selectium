@@ -16,7 +16,8 @@ import net.minecraft.network.chat.Component;
 
 import java.util.UUID;
 
-public class SelectiumCommand {
+public class SelectiumCommand
+{
     // ── Suggestions ────────────────────────────────────────────────────────
     private static final SuggestionProvider<FabricClientCommandSource> ONLINE_PLAYER_NAMES =
             (ctx, builder) ->
@@ -28,6 +29,7 @@ public class SelectiumCommand {
                             .map(entry -> entry.getProfile().getName())
                             .forEach(builder::suggest);
                 }
+
                 return builder.buildFuture();
             };
     /** Suggests names already in the player list. */
@@ -183,12 +185,12 @@ public class SelectiumCommand {
         return 1;
     }
 
-    private static int enableOutline(CommandContext<FabricClientCommandSource> ctx, boolean enable)
-    {
-        ConfigManger.setEnableOutline(enable);
-        // chatMessage(ctx, "Player outlines " + (enable ? "shown" : "hidden"), ChatFormatting.GRAY);
-        return 1;
-    }
+//    private static int enableOutline(CommandContext<FabricClientCommandSource> ctx, boolean enable)
+//    {
+//        ConfigManger.setEnableOutline(enable);
+//        chatMessage(ctx, "Player outlines " + (enable ? "shown" : "hidden"), ChatFormatting.GRAY);
+//        return 1;
+//    }
 
     private static int enableNameInfo(CommandContext<FabricClientCommandSource> ctx, boolean enable)
     {

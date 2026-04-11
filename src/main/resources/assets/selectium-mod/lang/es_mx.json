@@ -1,0 +1,27 @@
+{
+  "commands.selectium-mod.addPlayer.added": "%1$s añadido a la lista como %2$s",
+  "commands.selectium-mod.addPlayer.replaced": "%1$s reemplazado en la lista como %2$s",
+  "commands.selectium-mod.addPlayer.invalid": "UUID inválido",
+
+  "commands.selectium-mod.removePlayer.removed": "%1$s eliminado de la lista",
+  "commands.selectium-mod.removePlayer.failed": "%1$s no estaba en la lista",
+  "commands.selectium-mod.removePlayer.invalid": "UUID inválido",
+
+  "commands.selectium-mod.setNickname.set": "Apodo de %1$s establecido como %2$s",
+  "commands.selectium-mod.setNickname.removed": "Apodo de %1$s eliminado de la lista",
+  "commands.selectium-mod.setNickname.failed": "%1$s no estaba en la lista",
+  "commands.selectium-mod.setNickname.invalid": "UUID inválido o no está en la lista",
+
+  "commands.selectium-mod.enableNameInfo.enable": "Información del nombre del jugador mostrada",
+  "commands.selectium-mod.enableNameInfo.disable": "Información del nombre del jugador oculta",
+
+  "commands.selectium-mod.resetList": "Lista de jugadores reiniciada",
+
+  "commands.selectium-mod.showHelp.title": "Mod Selectium — Comandos",
+  "commands.selectium-mod.showHelp.listAdd": "Añadir o reemplazar jugador en la lista",
+  "commands.selectium-mod.showHelp.listRemove": "Eliminar jugador de la lista",
+  "commands.selectium-mod.showHelp.nicknameAdd": "Añadir o reemplazar apodo de un jugador en la lista",
+  "commands.selectium-mod.showHelp.nicknameRemove": "Eliminar apodo de un jugador en la lista",
+  "commands.selectium-mod.showHelp.showNameInfo": "Activar o desactivar colores de nombre y apodos",
+  "commands.selectium-mod.showHelp.reset": "Restablecer lista a valores predeterminados"
+}
