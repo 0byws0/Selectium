@@ -22,6 +22,6 @@
   "commands.selectium-mod.showHelp.listRemove": "Remove player from list",
   "commands.selectium-mod.showHelp.nicknameAdd": "Add or replace nickname of player on list",
   "commands.selectium-mod.showHelp.nicknameRemove": "Remove nickname of player on list",
-  "commands.selectium-mod.showHelp.showNameInfo": "Enable or disable player name colors and nicknames",
+  "commands.selectium-mod.showHelp.toggleNameInfo": "Enable or disable player name colors and nicknames",
   "commands.selectium-mod.showHelp.reset": "Reset list to default"
 }

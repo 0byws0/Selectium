@@ -20,8 +20,8 @@ public abstract class PlayerInfoMixin
         {
             PlayerInfo playerInfo = (PlayerInfo)(Object)this;
 
-            String playerName = playerInfo.getProfile().getName();
-            ConfigJsonObj.PlayerData playerData = ConfigManger.getPlayerData(playerName, playerInfo.getProfile().getId());
+            String playerName = playerInfo.getProfile().name();
+            ConfigJsonObj.PlayerData playerData = ConfigManger.getPlayerData(playerName, playerInfo.getProfile().id());
             MutableComponent mutableText = Component.empty().append(playerName);
 
             if (playerData != null)

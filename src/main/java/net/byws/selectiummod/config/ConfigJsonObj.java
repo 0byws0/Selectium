@@ -1,7 +1,5 @@
 package net.byws.selectiummod.config;
 
-import com.google.common.collect.HashBiMap;
-
 import java.util.HashMap;
 import java.util.UUID;
 

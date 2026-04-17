@@ -24,7 +24,8 @@ public class ConfigManger
     private static void load()
     {
         try {
-            if (!Files.exists(CONFIG_PATH)) {
+            if (!Files.exists(CONFIG_PATH))
+            {
                 resetList();
             }
 
@@ -105,7 +106,6 @@ public class ConfigManger
         config.playerCatList.put(UUID.fromString("8e2ba15c-4227-431b-aacd-6140493d0b08"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.ALLY, ""));
         config.playerCatList.put(UUID.fromString("b2c726ea-e6f2-434c-8fcc-fe167e7350f6"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.ALLY, ""));
         config.playerCatList.put(UUID.fromString("6fe82f2e-03e7-4e44-9607-203fb9496def"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.ALLY, ""));
-        config.playerCatList.put(UUID.fromString("fdab1b4a-b926-4842-99a4-7c781d35d20a"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.ALLY, ""));
         config.playerCatList.put(UUID.fromString("b838276d-a3db-4a51-b9cc-1a7faaee8ce3"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.ALLY, ""));
         config.playerCatList.put(UUID.fromString("edf52cab-d42d-4e0c-8b57-5bf7714ac6f7"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.ALLY, ""));
         config.playerCatList.put(UUID.fromString("5b827bf1-4df0-4301-8503-6f6d6dd48ace"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.ALLY, ""));
@@ -113,7 +113,7 @@ public class ConfigManger
         config.playerCatList.put(UUID.fromString("8c95f6fc-633d-4d00-a778-34f980aefa77"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.ALLY, ""));
         config.playerCatList.put(UUID.fromString("23683fe3-e11a-4f93-af7b-b8f45904512e"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.ALLY, ""));
         config.playerCatList.put(UUID.fromString("88cb8aef-73f4-4d1e-bc82-9a4cec11a376"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.ALLY, ""));
-        config.playerCatList.put(UUID.fromString("a6af75af-9657-4356-8e63-82dc33144555"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.ALLY, ""));
+        config.playerCatList.put(UUID.fromString("66481348-0bdd-4ec2-a5eb-3b9f8a64901a"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.ALLY, ""));
         config.playerCatList.put(UUID.fromString("7d3f0e49-033b-4843-af6b-537d89169560"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.ALLY, ""));
         config.playerCatList.put(UUID.fromString("44e8366b-dcc8-4270-a400-e50899df4a51"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.ALLY, ""));
         config.playerCatList.put(UUID.fromString("0cd2da19-468b-4fa8-ba42-d918618bf0cb"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.ALLY, ""));
@@ -131,12 +131,13 @@ public class ConfigManger
         config.playerCatList.put(UUID.fromString("c909d56b-0048-42b1-802f-fe95ad97c254"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.ALLY, ""));
         config.playerCatList.put(UUID.fromString("4fbc03c0-dd52-46f4-93e0-ad98fb80bbd4"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.ALLY, ""));
         config.playerCatList.put(UUID.fromString("440f0515-e23b-46ef-a550-75b94ec41392"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.ALLY, ""));
-        config.playerCatList.put(UUID.fromString("b77f2d8f-a4f1-4656-9724-0ff1223e2b51"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.ALLY, ""));
         config.playerCatList.put(UUID.fromString("395a8062-e992-4a32-9b18-3b6ee8372a80"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.ALLY, ""));
         config.playerCatList.put(UUID.fromString("91193273-bf07-4edc-898b-2db80570f1b1"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.ALLY, ""));
         config.playerCatList.put(UUID.fromString("56b9b2f7-e57d-4bc3-88f9-7e2b909d7cf1"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.ALLY, ""));
         config.playerCatList.put(UUID.fromString("9073921c-19a3-4874-9baa-f303901cb207"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.ALLY, ""));
         config.playerCatList.put(UUID.fromString("8d24ad2a-caab-4c2c-8044-54ed45827a30"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.ALLY, ""));
+        config.playerCatList.put(UUID.fromString("600b21a1-09cf-44fe-b7e8-25ec326100b9"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.ALLY, ""));
+        config.playerCatList.put(UUID.fromString("b7386628-69b5-44d7-8a7a-507531209fc4"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.ALLY, ""));
 
         config.playerCatList.put(UUID.fromString("fd5e13a0-3293-4333-87bf-c9ba199c8d7e"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.NEUTRAL, ""));
         config.playerCatList.put(UUID.fromString("97462a86-b9b4-4ba8-91ae-dd986f1fb0d2"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.NEUTRAL, ""));
@@ -202,6 +203,7 @@ public class ConfigManger
         config.playerCatList.put(UUID.fromString("7b0e1a12-f3fa-42fb-b780-7a02cf2e758e"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.TARGET, ""));
         config.playerCatList.put(UUID.fromString("a19eba69-d660-4543-a0da-33c83492de9b"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.TARGET, ""));
         config.playerCatList.put(UUID.fromString("d0b490cb-104d-4b3e-9448-4a7d001a993c"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.TARGET, ""));
+        config.playerCatList.put(UUID.fromString("fdab1b4a-b926-4842-99a4-7c781d35d20a"), new ConfigJsonObj.PlayerData(false, ConfigJsonObj.Category.TARGET, ""));
 
         save();
     }

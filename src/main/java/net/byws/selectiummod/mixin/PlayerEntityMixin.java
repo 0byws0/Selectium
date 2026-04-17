@@ -20,8 +20,8 @@ public abstract class PlayerEntityMixin
         {
             Player player = (Player) (Object) this;
 
-            String playerName = player.getGameProfile().getName();
-            ConfigJsonObj.PlayerData playerData = ConfigManger.getPlayerData(playerName, player.getGameProfile().getId());
+            String playerName = player.getGameProfile().name();
+            ConfigJsonObj.PlayerData playerData = ConfigManger.getPlayerData(playerName, player.getGameProfile().id());
             MutableComponent mutableText = (MutableComponent) original;
 
             if (playerData != null)

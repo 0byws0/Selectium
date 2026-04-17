@@ -22,6 +22,6 @@
   "commands.selectium-mod.showHelp.listRemove": "Eliminar jugador de la lista",
   "commands.selectium-mod.showHelp.nicknameAdd": "Añadir o reemplazar apodo de un jugador en la lista",
   "commands.selectium-mod.showHelp.nicknameRemove": "Eliminar apodo de un jugador en la lista",
-  "commands.selectium-mod.showHelp.showNameInfo": "Activar o desactivar colores de nombre y apodos",
+  "commands.selectium-mod.showHelp.toggleNameInfo": "Activar o desactivar colores de nombre y apodos",
   "commands.selectium-mod.showHelp.reset": "Restablecer lista a valores predeterminados"
 }
