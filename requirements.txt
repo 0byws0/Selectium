@@ -3,3 +3,5 @@ python-dotenv
 discord.py-pagination
 aiohttp
 aiosqlite
+fastapi[standard]
+uvicorn[standard]

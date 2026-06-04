@@ -2,13 +2,11 @@ import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 import Paginator
-import os
 from uuid import UUID
 
-from database_manager import DatabaseManager
-from player_obj import Player
-
-GUILD_ID = int(os.getenv("GUILD_ID"))
+from src.config import GUILD_ID
+from src.database_manager import DatabaseManager
+from src.player_handler import Player
 
 class PlayerList(commands.Cog):
     def __init__(self, bot):
@@ -52,9 +50,10 @@ class PlayerList(commands.Cog):
             player_data = await Player.create(player_uuid, player_username, category)
             if await self.bot.db.insert_player(player_data):
                 await interaction.followup.send(f"Player {player_data.mc_name} added")
+                await self.bot.conn_manager.broadcast()
             else:
                 await interaction.followup.send(f"Player {player_data.mc_name} already in database")
-        except Exception:
+        except ValueError:
             await interaction.followup.send(f"Failed to add player {name_or_uuid}")
 
     @app_commands.command(name="player_edit")
@@ -72,6 +71,7 @@ class PlayerList(commands.Cog):
         if upd_params:
             if player_names := await self.bot.db.update_player(field, field_input, **upd_params):
                 await interaction.followup.send(f"Player(s) {', '.join(player_names)} updated")
+                await self.bot.conn_manager.broadcast()
             else:
                 await interaction.followup.send(f"{field.name.capitalize()} {field_input} not found in database")
         else:
@@ -94,6 +94,7 @@ class PlayerList(commands.Cog):
 
         if player_names := await self.bot.db.remove_player(field, field_input):
             await interaction.followup.send(f"Player(s) {', '.join(player_names)} removed")
+            await self.bot.conn_manager.broadcast()
         else:
             await interaction.followup.send(f"{field.name.capitalize()} {field_input} not found database")
 
@@ -135,7 +136,7 @@ class PlayerList(commands.Cog):
             players = players[next((i for i, p in enumerate(players) if p.mc_uuid == self.last_upd["uuid"]), 0):]
 
         for player_data in players:
-            if upd_count >= 500:
+            if upd_count >= 150:
                 self.last_upd["uuid"] = player_data.mc_uuid
                 break
 

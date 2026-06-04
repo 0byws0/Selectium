@@ -2,7 +2,7 @@ import aiosqlite
 from enum import Enum
 from uuid import UUID
 
-from player_obj import Player
+from src.player_handler import Player
 
 class DatabaseManager:
     class Fields(Enum):
@@ -30,7 +30,9 @@ class DatabaseManager:
                     case self.DISCORD:
                         return int(field_input)
             except ValueError:
-                return None
+                pass
+
+            return None
 
         def collation(self):
             return "COLLATE NOCASE" if self in (self.USERNAME, self.ALT, self.CLAN) else ""
@@ -39,7 +41,6 @@ class DatabaseManager:
         self.conn = None
 
     async def connect(self):
-        # if not os.path.exists("data"): os.makedirs("data")
         self.conn = await aiosqlite.connect("data/database.db")
 
         # await self.conn.execute("DROP TABLE players")
@@ -60,6 +61,9 @@ class DatabaseManager:
                                 neutral_msg_id INTEGER,
                                 target_msg_id INTEGER)""")
         await self.conn.commit()
+
+    async def close(self):
+        await self.conn.close()
 
     async def insert_player(self, player_data: Player):
         cur = await self.conn.execute(f"INSERT INTO players "
@@ -104,21 +108,24 @@ class DatabaseManager:
 
         return [row[0] for row in rows]
 
-    async def get_field(self, field: Fields):
-        if not isinstance(field, self.Fields): raise TypeError("field is not a valid Fields enum")
-        cur = await self.conn.execute(f"SELECT DISTINCT {field.value} from players "
-                                      f"WHERE {field.value} IS NOT NULL")
-        return [row[0] for row in await cur.fetchall()]
+    # async def get_field(self, field: Fields):
+    #     if not isinstance(field, self.Fields): raise TypeError("field is not a valid Fields enum")
+    #     cur = await self.conn.execute(f"SELECT DISTINCT {field.value} from players "
+    #                                   f"WHERE {field.value} IS NOT NULL")
+    #     return [row[0] for row in await cur.fetchall()]
 
-    async def get_player(self, field: Fields, field_input):
-        if not isinstance(field, self.Fields): raise TypeError("field is not a valid Fields enum")
+    async def get_player(self, field: Fields = None, field_input = None):
+        if field is None:
+            cur = await self.conn.execute(f"SELECT * FROM players ORDER BY {self.Fields.UUID.value}")
+        else:
+            if not isinstance(field, self.Fields): raise TypeError("field is not a valid Fields enum")
 
-        field_input = field.convert(field_input)
-        cur = await self.conn.execute(f"SELECT * FROM players "
-                    f"WHERE {field.value}=:input "
-                    f"{field.collation()} "
-                    f"ORDER BY {self.Fields.UUID.value}",
-                    {"input": field_input})
+            field_input = field.convert(field_input)
+            cur = await self.conn.execute(f"SELECT * FROM players "
+                        f"WHERE {field.value}=:input "
+                        f"{field.collation()} "
+                        f"ORDER BY {self.Fields.UUID.value}",
+                        {"input": field_input})
 
         return [Player(UUID(bytes=row[0]), row[1], Player.Category[row[2]], row[3], row[4], row[5]) for row in await cur.fetchall()]
 
@@ -157,6 +164,3 @@ class DatabaseManager:
                                       "WHERE server_id=:server_id",
                                       {"server_id": server_id})
         return row[1:] if (row := await cur.fetchone()) else None
-
-    async def close(self):
-        await self.conn.close()
