@@ -1,27 +1,31 @@
 {
-  "commands.selectium-mod.addPlayer.added": "%1$s added to list as %2$s",
-  "commands.selectium-mod.addPlayer.replaced": "%1$s replaced in list as %2$s",
-  "commands.selectium-mod.addPlayer.invalid": "Invalid UUID",
+  "commands.selectium-mod.playerAdd.added": "%1$s added to list as %2$s",
+  "commands.selectium-mod.playerAdd.failed": "%1$s is already in list",
+  "commands.selectium-mod.playerAdd.invalid": "Invalid UUID",
 
-  "commands.selectium-mod.removePlayer.removed": "%1$s removed from list",
-  "commands.selectium-mod.removePlayer.failed": "%1$s was not in list",
-  "commands.selectium-mod.removePlayer.invalid": "Invalid UUID",
+  "commands.selectium-mod.playerEdit.edited": "%1$s changed to %2$s",
+  "commands.selectium-mod.playerEdit.failed": "%1$s is not in list",
+  "commands.selectium-mod.playerEdit.invalid": "Invalid UUID",
 
-  "commands.selectium-mod.setNickname.set": "%1$s nickname set to %2$s",
-  "commands.selectium-mod.setNickname.removed": "%1$s nickname removed from list",
-  "commands.selectium-mod.setNickname.failed": "%1$s was not in list",
-  "commands.selectium-mod.setNickname.invalid": "Invalid UUID or not in list",
+  "commands.selectium-mod.playerRemove.removed": "%1$s removed from list",
+  "commands.selectium-mod.playerRemove.failed": "%1$s is not in list",
+  "commands.selectium-mod.playerRemove.invalid": "Invalid UUID",
 
-  "commands.selectium-mod.enableNameInfo.enable": "Player name information shown",
-  "commands.selectium-mod.enableNameInfo.disable": "Player name information hidden",
+  "commands.selectium-mod.playerNicknameSet.edited": "%1$s nickname set to %2$s",
+  "commands.selectium-mod.playerNicknameSet.removed": "%1$s nickname removed",
+  "commands.selectium-mod.playerNicknameSet.failed": "%1$s is not in list",
+  "commands.selectium-mod.playerNicknameSet.invalid": "Invalid UUID",
+
+  "commands.selectium-mod.playerToggleInfo.enable": "Player name information shown",
+  "commands.selectium-mod.playerToggleInfo.disable": "Player name information hidden",
 
   "commands.selectium-mod.resetList": "Player list reset",
 
   "commands.selectium-mod.showHelp.title": "Selectium Mod — Commands",
-  "commands.selectium-mod.showHelp.listAdd": "Add or replace player on list",
-  "commands.selectium-mod.showHelp.listRemove": "Remove player from list",
-  "commands.selectium-mod.showHelp.nicknameAdd": "Add or replace nickname of player on list",
-  "commands.selectium-mod.showHelp.nicknameRemove": "Remove nickname of player on list",
-  "commands.selectium-mod.showHelp.toggleNameInfo": "Enable or disable player name colors and nicknames",
+  "commands.selectium-mod.showHelp.playerAdd": "Add or replace player on list",
+  "commands.selectium-mod.showHelp.playerRemove": "Remove player from list",
+  "commands.selectium-mod.showHelp.playerNicknameEdit": "Add or replace nickname of player on list",
+  "commands.selectium-mod.showHelp.playerNicknameRemove": "Remove nickname of player on list",
+  "commands.selectium-mod.showHelp.playerToggleInfo": "Enable or disable player name colors and nicknames",
   "commands.selectium-mod.showHelp.reset": "Reset list to default"
 }

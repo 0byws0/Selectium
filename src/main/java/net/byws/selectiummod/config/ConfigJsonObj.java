@@ -9,11 +9,11 @@ public class ConfigJsonObj
 
     public static class PlayerData
     {
-        public Boolean shared;
+        public boolean shared;
         public Category type;
         public String nickname;
 
-        public PlayerData(Boolean shared, Category type, String nickname)
+        public PlayerData(boolean shared, Category type, String nickname)
         {
             this.shared = shared;
             this.type = type;
@@ -21,18 +21,9 @@ public class ConfigJsonObj
         }
     }
 
-    public HashMap<UUID, PlayerData> playerCatList;
-    public HashMap<String, UUID> playerNameList;
-    public boolean enableOutline;
-    public boolean enableNameColor;
-
-    public ConfigJsonObj()
-    {
-        playerCatList = new HashMap<>();
-        playerNameList = new HashMap<>();
-        enableOutline = true;
-        enableNameColor = true;
-    }
+    public HashMap<UUID, PlayerData> playerCatList = new HashMap<>();
+    public HashMap<String, UUID> playerNameList = new HashMap<>();
+    public boolean enableNameColor = true;
 
     public String getNameFromList(UUID playerUUID)
     {

@@ -1,12 +1,17 @@
 package net.byws.selectiummod;
 
-import net.byws.selectiummod.command.SelectiumCommand;
-import net.byws.selectiummod.config.ConfigManger;
 import net.fabricmc.api.ModInitializer;
-
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.WebSocket;
+
+import net.byws.selectiummod.command.SelectiumCommand;
+import net.byws.selectiummod.config.ConfigManager;
+import net.byws.selectiummod.discord.WebSocketListener;
 
 public class SelectiumMod implements ModInitializer
 {
@@ -18,6 +23,8 @@ public class SelectiumMod implements ModInitializer
 	// That way, it's clear which mod wrote info, warnings, and errors.
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
+	private static WebSocket discord_client;
+
 	@Override
 	public void onInitialize()
 	{
@@ -25,7 +32,11 @@ public class SelectiumMod implements ModInitializer
 		// However, some things (like resources) may still be uninitialized.
 		// Proceed with mild caution.
 
-		ConfigManger.init(MOD_ID);
+		ConfigManager.init(LOGGER);
+
+//		discord_client = HttpClient.newHttpClient().newWebSocketBuilder()
+//		.buildAsync(URI.create("ws://localhost:8000/ws"), new WebSocketListener())
+//		.join();
 
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
 				SelectiumCommand.register(dispatcher));
