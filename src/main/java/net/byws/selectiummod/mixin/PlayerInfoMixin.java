@@ -17,21 +17,23 @@ public abstract class PlayerInfoMixin
     @Inject(method = "getTabListDisplayName", at = @At("HEAD"), cancellable = true)
     private void overrideNameColor(CallbackInfoReturnable<Component> cir)
     {
-        if (ConfigManager.getEnableNameInfo())
+        ConfigManager configManager = ConfigManager.getInstance();
+        if (!configManager.getEnableNameInfo()) return;
+
+        PlayerInfo playerInfo = (PlayerInfo)(Object)this;
+        String playerName = playerInfo.getProfile().getName();
+        MutableComponent mutableText = Component.empty().append(playerName);
+
+        ConfigJsonObj.PlayerData playerData = configManager.getPlayerData(playerInfo.getProfile().getId());
+        if (playerData == null) playerData = configManager.getPlayerData(playerName);
+
+        if (playerData != null)
         {
-            PlayerInfo playerInfo = (PlayerInfo)(Object)this;
-
-            String playerName = playerInfo.getProfile().getName();
-            ConfigJsonObj.PlayerData playerData = ConfigManager.getPlayerData(playerName, playerInfo.getProfile().getId());
-            MutableComponent mutableText = Component.empty().append(playerName);
-
-            if (playerData != null)
-            {
-                if (!playerName.equals(playerData.nickname)) mutableText.append(" (" + playerData.nickname + ")");
-                mutableText.withStyle(ConfigManager.getPlayerColorFormatting(playerData.type));
-            }
-
-            cir.setReturnValue(mutableText);
+            if (!playerName.equals(playerData.nickname) && !playerData.nickname.isEmpty()) mutableText.append(" (" + playerData.nickname + ")");
+            mutableText.withStyle((playerData.shared) ? playerData.type.getSharedColorFormatting()
+                    : playerData.type.getColorFormatting());
         }
+
+        cir.setReturnValue(mutableText);
     }
 }

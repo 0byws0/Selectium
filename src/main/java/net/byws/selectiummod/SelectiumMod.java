@@ -1,13 +1,11 @@
 package net.byws.selectiummod;
 
+import com.google.gson.Gson;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.WebSocket;
 
 import net.byws.selectiummod.command.SelectiumCommand;
 import net.byws.selectiummod.config.ConfigManager;
@@ -23,7 +21,7 @@ public class SelectiumMod implements ModInitializer
 	// That way, it's clear which mod wrote info, warnings, and errors.
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-	private static WebSocket discord_client;
+	public static final Gson GSON = new Gson();
 
 	@Override
 	public void onInitialize()
@@ -32,13 +30,16 @@ public class SelectiumMod implements ModInitializer
 		// However, some things (like resources) may still be uninitialized.
 		// Proceed with mild caution.
 
-		ConfigManager.init(LOGGER);
-
-//		discord_client = HttpClient.newHttpClient().newWebSocketBuilder()
-//		.buildAsync(URI.create("ws://localhost:8000/ws"), new WebSocketListener())
-//		.join();
+		ConfigManager.init(LOGGER, GSON);
+		WebSocketListener.init(LOGGER, GSON);
 
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
 				SelectiumCommand.register(dispatcher));
+
+		ClientTickEvents.START_CLIENT_TICK.register(client ->
+		{
+			WebSocketListener.getInstance().updateConfig();
+			ConfigManager.getInstance().updatePlayerData();
+		});
 	}
 }

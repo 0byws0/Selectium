@@ -38,7 +38,7 @@ public class SelectiumCommand
     /** Suggests names already in the player list. */
     private static final SuggestionProvider<FabricClientCommandSource> PLAYER_LIST_NAMES =
             (ctx, builder) ->
-                    SharedSuggestionProvider.suggest(ConfigManager.getNamesList(), builder);
+                    SharedSuggestionProvider.suggest(ConfigManager.getInstance().getNamesList(), builder);
 
     private static String validateName(String commandInput, String[] usernames)
     {
@@ -53,7 +53,9 @@ public class SelectiumCommand
 
     public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher)
     {
+        ConfigManager configManager = ConfigManager.getInstance();
         var playerAddLiteral = ClientCommandManager.literal("add");
+        var playerEditLiteral = ClientCommandManager.literal("edit");
 
         for (ConfigJsonObj.Category category : ConfigJsonObj.Category.values())
         {
@@ -63,16 +65,13 @@ public class SelectiumCommand
                             .executes(ctx ->
                                     playerAdd(ctx, validateName(StringArgumentType.getString(ctx, "name/UUID"), onlinePlayerNames), category))));
         }
-
-        var playerEditLiteral = ClientCommandManager.literal("edit");
-
         for (ConfigJsonObj.Category category : ConfigJsonObj.Category.values())
         {
             playerEditLiteral.then(ClientCommandManager.literal(category.name())
                     .then(ClientCommandManager.argument("name/UUID", StringArgumentType.word())
                             .suggests(PLAYER_LIST_NAMES)
                             .executes(ctx ->
-                                    playerEdit(ctx, validateName(StringArgumentType.getString(ctx, "name/UUID"), ConfigManager.getNamesList()), category))));
+                                    playerEdit(ctx, validateName(StringArgumentType.getString(ctx, "name/UUID"), configManager.getNamesList()), category))));
         }
 
         dispatcher.register(
@@ -91,17 +90,17 @@ public class SelectiumCommand
                                         .then(ClientCommandManager.argument("name/UUID", StringArgumentType.word())
                                                 .suggests(PLAYER_LIST_NAMES)
                                                 .executes(ctx ->
-                                                        playerRemove(ctx, validateName(StringArgumentType.getString(ctx, "name/UUID"), ConfigManager.getNamesList())))))
+                                                        playerRemove(ctx, validateName(StringArgumentType.getString(ctx, "name/UUID"), configManager.getNamesList())))))
 
                                 .then(ClientCommandManager.literal("nickname")
 
                                         // /playerNicknameAdd <name/UUID> <nickname>
-                                        .then(ClientCommandManager.literal("add")
+                                        .then(ClientCommandManager.literal("edit")
                                                 .then(ClientCommandManager.argument("name/UUID", StringArgumentType.word())
                                                         .suggests(PLAYER_LIST_NAMES)
                                                         .then(ClientCommandManager.argument("nickname", StringArgumentType.word())
                                                                 .executes(ctx ->
-                                                                        playerNicknameSet(ctx, validateName(StringArgumentType.getString(ctx, "name/UUID"), ConfigManager.getNamesList()),
+                                                                        playerNicknameSet(ctx, validateName(StringArgumentType.getString(ctx, "name/UUID"), configManager.getNamesList()),
                                                                                 StringArgumentType.getString(ctx, "nickname"))))))
 
                                         // /playerNicknameRemove <name/UUID>
@@ -109,7 +108,7 @@ public class SelectiumCommand
                                                 .then(ClientCommandManager.argument("name/UUID", StringArgumentType.word())
                                                         .suggests(PLAYER_LIST_NAMES)
                                                         .executes(ctx ->
-                                                                playerNicknameSet(ctx, validateName(StringArgumentType.getString(ctx, "name/UUID"), ConfigManager.getNamesList()), ""))))
+                                                                playerNicknameSet(ctx, validateName(StringArgumentType.getString(ctx, "name/UUID"), configManager.getNamesList()), ""))))
                                 )
 
                                 // /playerToggleInfo
@@ -146,7 +145,7 @@ public class SelectiumCommand
                     .orElse(nameOrUUID);
             }
 
-            if (ConfigManager.addListPlayer(UUID.fromString(uuid), type))
+            if (ConfigManager.getInstance().addListPlayer(UUID.fromString(uuid), false, type, ""))
             {
                 chatMessage(ctx, ChatFormatting.GRAY, "commands.selectium-mod.playerAdd.added", nameOrUUID, type.name());
             }
@@ -165,9 +164,11 @@ public class SelectiumCommand
 
     private static int playerEdit(CommandContext<FabricClientCommandSource> ctx, String nameOrUUID, ConfigJsonObj.Category type)
     {
+        ConfigManager configManager = ConfigManager.getInstance();
+
         try
         {
-            if (ConfigManager.editListPlayer(nameOrUUID, type) || ConfigManager.editListPlayer(UUID.fromString(nameOrUUID), type))
+            if (configManager.editListPlayer(nameOrUUID, false, type, null) || configManager.editListPlayer(UUID.fromString(nameOrUUID), false, type, null))
             {
                 chatMessage(ctx, ChatFormatting.GRAY, "commands.selectium-mod.playerEdit.edited", nameOrUUID, type.name());
             }
@@ -186,9 +187,11 @@ public class SelectiumCommand
 
     private static int playerRemove(CommandContext<FabricClientCommandSource> ctx, String nameOrUUID)
     {
+        ConfigManager configManager = ConfigManager.getInstance();
+
         try
         {
-            if (ConfigManager.removeListPlayer(nameOrUUID) || ConfigManager.removeListPlayer(UUID.fromString(nameOrUUID)))
+            if (configManager.removeListPlayer(nameOrUUID) || configManager.removeListPlayer(UUID.fromString(nameOrUUID)))
             {
                 chatMessage(ctx, ChatFormatting.GRAY, "commands.selectium-mod.playerRemove.removed", nameOrUUID);
             }
@@ -205,9 +208,11 @@ public class SelectiumCommand
 
     public static int playerNicknameSet(CommandContext<FabricClientCommandSource> ctx, String nameOrUUID, String nickname)
     {
+        ConfigManager configManager = ConfigManager.getInstance();
+
         try
         {
-            if (ConfigManager.setPlayerNickname(nameOrUUID, nickname) || ConfigManager.setPlayerNickname(UUID.fromString(nameOrUUID), nickname))
+            if (configManager.editListPlayer(nameOrUUID, null, null, nickname) || configManager.editListPlayer(UUID.fromString(nameOrUUID), null, null, nickname))
             {
                 if (nickname.isEmpty())
                 {
@@ -232,15 +237,17 @@ public class SelectiumCommand
 
     private static int playerToggleInfo(CommandContext<FabricClientCommandSource> ctx)
     {
-        ConfigManager.setEnableNameInfo(!ConfigManager.getEnableNameInfo());
-        chatMessage(ctx, ChatFormatting.GRAY, (ConfigManager.getEnableNameInfo() ? "commands.selectium-mod.playerToggleInfo.enable"
+        ConfigManager configManager = ConfigManager.getInstance();
+
+        configManager.setEnableNameInfo(!configManager.getEnableNameInfo());
+        chatMessage(ctx, ChatFormatting.GRAY, (configManager.getEnableNameInfo() ? "commands.selectium-mod.playerToggleInfo.enable"
                 : "commands.selectium-mod.playerToggleInfo.disable"));
         return 1;
     }
 
     private static int resetList(CommandContext<FabricClientCommandSource> ctx)
     {
-        ConfigManager.resetList();
+        ConfigManager.getInstance().resetList();
         chatMessage(ctx, ChatFormatting.GRAY, "commands.selectium-mod.resetList");
         return 1;
     }

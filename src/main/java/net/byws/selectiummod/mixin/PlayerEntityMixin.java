@@ -17,26 +17,27 @@ public abstract class PlayerEntityMixin
     @ModifyReturnValue(method = "getDisplayName", at = @At("RETURN"))
     private Component overrideNameColor(Component original)
     {
-        if (ConfigManager.getEnableNameInfo())
+        ConfigManager configManager = ConfigManager.getInstance();
+        if (!configManager.getEnableNameInfo()) return original;
+
+        Player player = (Player)(Object)this;
+        String playerName = player.getGameProfile().getName();
+        MutableComponent mutableText = (MutableComponent)original;
+
+        ConfigJsonObj.PlayerData playerData = configManager.getPlayerData(player.getGameProfile().getId());
+        if (playerData == null) playerData = configManager.getPlayerData(playerName);
+
+        if (playerData != null)
         {
-            Player player = (Player) (Object) this;
-
-            String playerName = player.getGameProfile().getName();
-            ConfigJsonObj.PlayerData playerData = ConfigManager.getPlayerData(playerName, player.getGameProfile().getId());
-            MutableComponent mutableText = (MutableComponent) original;
-
-            if (playerData != null)
-            {
-                if (!playerName.equals(playerData.nickname)) mutableText.append(" (" + playerData.nickname + ")");
-                mutableText.withStyle(ConfigManager.getPlayerColorFormatting(playerData.type));
-            }
-            else
-            {
-                mutableText.withStyle(ChatFormatting.WHITE);
-            }
-
-            return mutableText;
+            if (!playerName.equals(playerData.nickname) && !playerData.nickname.isEmpty()) mutableText.append(" (" + playerData.nickname + ")");
+            mutableText.withStyle((playerData.shared) ? playerData.type.getSharedColorFormatting()
+                    : playerData.type.getColorFormatting());
         }
-        return original;
+        else
+        {
+            mutableText.withStyle(ChatFormatting.WHITE);
+        }
+
+        return mutableText;
     }
 }

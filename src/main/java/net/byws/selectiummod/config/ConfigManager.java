@@ -1,7 +1,7 @@
 package net.byws.selectiummod.config;
 
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import org.slf4j.Logger;
 import com.google.gson.*;
 
@@ -13,17 +13,36 @@ import java.util.UUID;
 
 public class ConfigManager
 {
+    private static ConfigManager INSTANCE;
     private static final Path CONFIG_PATH =
             FabricLoader.getInstance().getConfigDir().resolve("config-selectium-mod.json");
-    private static ConfigJsonObj CONFIG;
-    private static Gson GSON = new Gson();
-    public static Logger LOGGER;
+    private final Logger LOGGER;
+    private final Gson GSON;
+    
+    private ConfigJsonObj config;
 
-    private static void load()
+    private ConfigManager(Logger modLogger, Gson gson)
     {
-        try {
+        this.LOGGER = modLogger;
+        this.GSON = gson;
+        this.config = new ConfigJsonObj();
+    }
+
+    public static synchronized void init(final Logger modLogger, final Gson gson)
+    {
+        if (INSTANCE == null)
+        {
+            INSTANCE = new ConfigManager(modLogger, gson);
+            INSTANCE.load();
+        }
+    }
+
+    private void load()
+    {
+        try
+        {
             if (!Files.exists(CONFIG_PATH)) save();
-            CONFIG = GSON.fromJson(Files.readString(CONFIG_PATH), ConfigJsonObj.class);
+            config = GSON.fromJson(Files.readString(CONFIG_PATH), ConfigJsonObj.class);
         }
         catch (IOException e)
         {
@@ -31,11 +50,11 @@ public class ConfigManager
         }
     }
 
-    private static void save()
+    private void save()
     {
         try (FileWriter fw = new FileWriter(CONFIG_PATH.toFile()))
         {
-            fw.write(GSON.toJson(CONFIG));
+            fw.write(GSON.toJson(config));
         }
         catch (IOException e)
         {
@@ -43,115 +62,102 @@ public class ConfigManager
         }
     }
 
-    public static void init(final Logger modLogger)
+    public static ConfigManager getInstance()
     {
-        LOGGER = modLogger;
-        CONFIG = new ConfigJsonObj();
-        load();
+        if (INSTANCE == null) throw new IllegalStateException("ConfigManager not initialized");
+        return INSTANCE;
     }
 
-    public static void resetList()
+    public String[] getNamesList() { return config.playerNameList.keySet().toArray(new String[0]); }
+
+    public boolean getEnableNameInfo() { return config.enableNameColor; }
+
+    public ConfigJsonObj.PlayerData getPlayerData(String playerName) { return getPlayerData(config.playerNameList.get(playerName)); }
+
+    public ConfigJsonObj.PlayerData getPlayerData(UUID playerUUID) { return config.playerCatList.get(playerUUID); }
+
+    public void updatePlayerData()
     {
-        CONFIG.playerCatList.clear();
-        CONFIG.playerNameList.clear();
+        var connection = Minecraft.getInstance().getConnection();
+        if (connection == null) return;
+
+        boolean requiresSave = false;
+
+        for (var playerObj : connection.getOnlinePlayers())
+        {
+            UUID playerUUID = playerObj.getProfile().getId();
+            String playerName = playerObj.getProfile().getName();
+            ConfigJsonObj.PlayerData player = config.playerCatList.get(playerUUID);
+
+            if (player == null)
+            {
+                player = config.playerCatList.get(config.playerNameList.get(playerName));
+            }
+            else if (!playerUUID.equals(config.playerNameList.get(playerName)))
+            {
+                config.playerNameList.remove(config.getNameFromList(playerUUID));
+                config.playerNameList.put(playerName, playerUUID);
+                requiresSave = true;
+            }
+
+            if (player != null && player.nickname.isEmpty())
+            {
+                player.nickname = playerName;
+                requiresSave = true;
+            }
+        }
+
+        if (requiresSave) save();
+    }
+
+    public boolean addListPlayer(UUID playerUUID, boolean shared, ConfigJsonObj.Category type, String nickname)
+    {
+        if (config.playerCatList.putIfAbsent(playerUUID, new ConfigJsonObj.PlayerData(shared, type, nickname)) == null)
+        {
+            save();
+            return true;
+        }
+        return false;
+    }
+
+    public boolean editListPlayer(String playerName, Boolean shared, ConfigJsonObj.Category type, String nickname) { return editListPlayer(config.playerNameList.get(playerName), shared, type, nickname); }
+
+    public boolean editListPlayer(UUID playerUUID, Boolean shared, ConfigJsonObj.Category type, String nickname)
+    {
+        ConfigJsonObj.PlayerData player = config.playerCatList.get(playerUUID);
+        if (player != null)
+        {
+            if (shared != null) player.shared = shared;
+            if (type != null) player.type = type;
+            if (nickname != null) player.nickname = nickname;
+            save();
+            return true;
+        }
+        return false;
+    }
+
+    public boolean removeListPlayer(String playerName) { return removeListPlayer(config.playerNameList.get(playerName)); }
+
+    public boolean removeListPlayer(UUID playerUUID)
+    {
+        if (config.playerCatList.remove(playerUUID) != null | config.playerNameList.remove(config.getNameFromList(playerUUID)) != null)
+        {
+            save();
+            return true;
+        }
+        return false;
+    }
+
+    public void resetList()
+    {
+        config.playerCatList.clear();
+        config.playerNameList.clear();
         save();
     }
 
-    public static ChatFormatting getPlayerColorFormatting(ConfigJsonObj.Category playerType)
+    public void setEnableNameInfo(boolean enable)
     {
-        return switch(playerType)
-        {
-            case null -> null;
-            case ALLY -> ChatFormatting.GREEN;
-            case NEUTRAL -> ChatFormatting.YELLOW;
-            case TARGET -> ChatFormatting.RED;
-        };
-    }
-
-    public static String[] getNamesList() { return CONFIG.playerNameList.keySet().toArray(new String[0]); }
-
-    public static boolean getEnableNameInfo() { return CONFIG.enableNameColor; }
-
-    public static ConfigJsonObj.PlayerData getPlayerData(String playerName, UUID playerUUID)
-    {
-        ConfigJsonObj.PlayerData player = CONFIG.playerCatList.get(playerUUID);
-        boolean saveToFile = false;
-
-        if (player == null)
-        {
-            player = CONFIG.playerCatList.get(CONFIG.playerNameList.get(playerName));
-        }
-        else if (CONFIG.playerNameList.get(playerName) != playerUUID)
-        {
-            CONFIG.playerNameList.remove(CONFIG.getNameFromList(playerUUID));
-            CONFIG.playerNameList.put(playerName, playerUUID);
-            saveToFile = true;
-        }
-
-        if (player != null && player.nickname.isEmpty())
-        {
-            player.nickname = playerName;
-            saveToFile = true;
-        }
-
-        if (saveToFile) save();
-
-        return player;
-    }
-
-    public static boolean addListPlayer(UUID playerUUID, ConfigJsonObj.Category type)
-    {
-        if (CONFIG.playerCatList.putIfAbsent(playerUUID, new ConfigJsonObj.PlayerData(false, type, "")) == null)
-        {
-            save();
-            return true;
-        }
-        return false;
-    }
-
-    public static boolean editListPlayer(String playerName, ConfigJsonObj.Category type) { return editListPlayer(CONFIG.playerNameList.get(playerName), type); }
-
-    public static boolean editListPlayer(UUID playerUUID, ConfigJsonObj.Category type)
-    {
-        ConfigJsonObj.PlayerData player = CONFIG.playerCatList.get(playerUUID);
-        if (player != null)
-        {
-            player.shared = false;
-            player.type = type;
-            save();
-            return true;
-        }
-        return false;
-    }
-
-    public static boolean removeListPlayer(String playerName) { return removeListPlayer(CONFIG.playerNameList.get(playerName)); }
-
-    public static boolean removeListPlayer(UUID playerUUID)
-    {
-        if (CONFIG.playerCatList.remove(playerUUID) != null | CONFIG.playerNameList.remove(CONFIG.getNameFromList(playerUUID)) != null)
-        {
-            save();
-            return true;
-        }
-        return false;
-    }
-
-    public static boolean setPlayerNickname(String playerName, String playerNickname) { return setPlayerNickname(CONFIG.playerNameList.get(playerName), playerNickname); }
-
-    public static boolean setPlayerNickname(UUID playerUUID, String playerNickname)
-    {
-        ConfigJsonObj.PlayerData player = CONFIG.playerCatList.get(playerUUID);
-        if (player != null)
-        {
-            player.nickname = playerNickname;
-            return true;
-        }
-        return false;
-    }
-
-    public static void setEnableNameInfo(boolean enable)
-    {
-        CONFIG.enableNameColor = enable;
+        config.enableNameColor = enable;
         save();
     }
 }
