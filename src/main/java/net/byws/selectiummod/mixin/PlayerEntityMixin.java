@@ -8,7 +8,6 @@ import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
-import net.byws.selectiummod.config.ConfigJsonObj;
 import net.byws.selectiummod.config.ConfigManager;
 
 @Mixin(Player.class)
@@ -24,14 +23,17 @@ public abstract class PlayerEntityMixin
         String playerName = player.getGameProfile().getName();
         MutableComponent mutableText = (MutableComponent)original;
 
-        ConfigJsonObj.PlayerData playerData = configManager.getPlayerData(player.getGameProfile().getId());
-        if (playerData == null) playerData = configManager.getPlayerData(playerName);
+        var playerData = configManager.getPlayerData(player.getGameProfile().getId());
+        if (playerData.getRight() == null) playerData = configManager.getPlayerData(playerName);
 
-        if (playerData != null)
+        if (playerData.getRight() != null)
         {
-            if (!playerName.equals(playerData.nickname) && !playerData.nickname.isEmpty()) mutableText.append(" (" + playerData.nickname + ")");
-            mutableText.withStyle((playerData.shared) ? playerData.type.getSharedColorFormatting()
-                    : playerData.type.getColorFormatting());
+            if (!playerName.equals(playerData.getRight().nickname) && !playerData.getRight().nickname.isEmpty())
+            {
+                mutableText.append(" (" + playerData.getRight().nickname + ")");
+            }
+            mutableText.withStyle((playerData.getLeft()) ? playerData.getRight().type.getClientColorFormatting()
+                    : playerData.getRight().type.getServerColorFormatting());
         }
         else
         {

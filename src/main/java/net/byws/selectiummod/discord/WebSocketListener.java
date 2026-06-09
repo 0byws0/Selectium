@@ -10,10 +10,9 @@ import java.net.http.WebSocket;
 import java.util.UUID;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ConcurrentSkipListMap;
 
-import net.byws.selectiummod.config.ConfigJsonObj;
 import net.byws.selectiummod.config.ConfigManager;
+import net.byws.selectiummod.config.ConfigJsonObj;
 
 public class WebSocketListener implements WebSocket.Listener
 {
@@ -22,7 +21,6 @@ public class WebSocketListener implements WebSocket.Listener
     private final Gson GSON;
 
     private WebSocket discord_conn;
-    private ConcurrentSkipListMap<UUID, ConfigJsonObj.PlayerData> sharedPlayerData = new ConcurrentSkipListMap<>();
 
     private WebSocketListener(Logger modLogger, Gson gson)
     {
@@ -63,27 +61,6 @@ public class WebSocketListener implements WebSocket.Listener
         websocket.request(1);
     }
 
-    public void updateConfig()
-    {
-        var playerEntry = sharedPlayerData.pollFirstEntry();
-        if (playerEntry == null) return;
-
-        ConfigManager configManager = ConfigManager.getInstance();
-        UUID playerUUID = playerEntry.getKey();
-        ConfigJsonObj.PlayerData updatedPlayer = playerEntry.getValue();
-
-        ConfigJsonObj.PlayerData player = configManager.getPlayerData(playerUUID);
-
-        if (player == null)
-        {
-            configManager.addListPlayer(playerUUID, updatedPlayer.shared, updatedPlayer.type, updatedPlayer.nickname);
-        }
-        else if (player.shared)
-        {
-            configManager.editListPlayer(playerUUID, updatedPlayer.shared, updatedPlayer.type, updatedPlayer.nickname);
-        }
-    }
-
     @Override
     public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last)
     {
@@ -92,11 +69,7 @@ public class WebSocketListener implements WebSocket.Listener
             Map<UUID, ConfigJsonObj.PlayerData> incomingData = GSON.fromJson(data.toString(),
                     new TypeToken<Map<UUID, ConfigJsonObj.PlayerData>>(){}.getType());
 
-            if (incomingData != null)
-            {
-                sharedPlayerData.clear();
-                sharedPlayerData.putAll(incomingData);
-            }
+            if (incomingData != null) ConfigManager.getInstance().setServerList(incomingData);
         }
         catch (Exception e)
         {

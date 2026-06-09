@@ -145,7 +145,7 @@ public class SelectiumCommand
                     .orElse(nameOrUUID);
             }
 
-            if (ConfigManager.getInstance().addListPlayer(UUID.fromString(uuid), false, type, ""))
+            if (ConfigManager.getInstance().addClientListPlayer(UUID.fromString(uuid), type, ""))
             {
                 chatMessage(ctx, ChatFormatting.GRAY, "commands.selectium-mod.playerAdd.added", nameOrUUID, type.name());
             }
@@ -168,7 +168,7 @@ public class SelectiumCommand
 
         try
         {
-            if (configManager.editListPlayer(nameOrUUID, false, type, null) || configManager.editListPlayer(UUID.fromString(nameOrUUID), false, type, null))
+            if (configManager.editClientListPlayer(nameOrUUID, type, null) || configManager.editClientListPlayer(UUID.fromString(nameOrUUID), type, null))
             {
                 chatMessage(ctx, ChatFormatting.GRAY, "commands.selectium-mod.playerEdit.edited", nameOrUUID, type.name());
             }
@@ -191,7 +191,7 @@ public class SelectiumCommand
 
         try
         {
-            if (configManager.removeListPlayer(nameOrUUID) || configManager.removeListPlayer(UUID.fromString(nameOrUUID)))
+            if (configManager.removeClientListPlayer(nameOrUUID) || configManager.removeClientListPlayer(UUID.fromString(nameOrUUID)))
             {
                 chatMessage(ctx, ChatFormatting.GRAY, "commands.selectium-mod.playerRemove.removed", nameOrUUID);
             }
@@ -212,7 +212,7 @@ public class SelectiumCommand
 
         try
         {
-            if (configManager.editListPlayer(nameOrUUID, null, null, nickname) || configManager.editListPlayer(UUID.fromString(nameOrUUID), null, null, nickname))
+            if (configManager.editClientListPlayer(nameOrUUID, null, nickname) || configManager.editClientListPlayer(UUID.fromString(nameOrUUID), null, nickname))
             {
                 if (nickname.isEmpty())
                 {

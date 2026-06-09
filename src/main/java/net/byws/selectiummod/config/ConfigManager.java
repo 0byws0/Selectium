@@ -4,11 +4,13 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import org.slf4j.Logger;
 import com.google.gson.*;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.UUID;
 
 public class ConfigManager
@@ -70,11 +72,16 @@ public class ConfigManager
 
     public String[] getNamesList() { return config.playerNameList.keySet().toArray(new String[0]); }
 
+    public Pair<Boolean, ConfigJsonObj.PlayerData> getPlayerData(String playerName) { return getPlayerData(config.playerNameList.get(playerName)); }
+
+    public Pair<Boolean, ConfigJsonObj.PlayerData> getPlayerData(UUID playerUUID)
+    {
+        ConfigJsonObj.PlayerData player = config.clientPlayerList.get(playerUUID);
+        if (player != null) return Pair.of(true, player);
+        return Pair.of(false, (playerUUID == null) ? null : config.serverPlayerList.get(playerUUID));
+    }
+
     public boolean getEnableNameInfo() { return config.enableNameColor; }
-
-    public ConfigJsonObj.PlayerData getPlayerData(String playerName) { return getPlayerData(config.playerNameList.get(playerName)); }
-
-    public ConfigJsonObj.PlayerData getPlayerData(UUID playerUUID) { return config.playerCatList.get(playerUUID); }
 
     public void updatePlayerData()
     {
@@ -87,15 +94,16 @@ public class ConfigManager
         {
             UUID playerUUID = playerObj.getProfile().getId();
             String playerName = playerObj.getProfile().getName();
-            ConfigJsonObj.PlayerData player = config.playerCatList.get(playerUUID);
+
+            ConfigJsonObj.PlayerData player = getPlayerData(playerUUID).getRight();
 
             if (player == null)
             {
-                player = config.playerCatList.get(config.playerNameList.get(playerName));
+                player = getPlayerData(playerName).getRight();
             }
             else if (!playerUUID.equals(config.playerNameList.get(playerName)))
             {
-                config.playerNameList.remove(config.getNameFromList(playerUUID));
+                config.playerNameList.values().remove(playerUUID);
                 config.playerNameList.put(playerName, playerUUID);
                 requiresSave = true;
             }
@@ -110,9 +118,9 @@ public class ConfigManager
         if (requiresSave) save();
     }
 
-    public boolean addListPlayer(UUID playerUUID, boolean shared, ConfigJsonObj.Category type, String nickname)
+    public boolean addClientListPlayer(UUID playerUUID, ConfigJsonObj.Category type, String nickname)
     {
-        if (config.playerCatList.putIfAbsent(playerUUID, new ConfigJsonObj.PlayerData(shared, type, nickname)) == null)
+        if (config.clientPlayerList.putIfAbsent(playerUUID, new ConfigJsonObj.PlayerData(type, nickname)) == null)
         {
             save();
             return true;
@@ -120,14 +128,13 @@ public class ConfigManager
         return false;
     }
 
-    public boolean editListPlayer(String playerName, Boolean shared, ConfigJsonObj.Category type, String nickname) { return editListPlayer(config.playerNameList.get(playerName), shared, type, nickname); }
+    public boolean editClientListPlayer(String playerName, ConfigJsonObj.Category type, String nickname) { return editClientListPlayer(config.playerNameList.get(playerName), type, nickname); }
 
-    public boolean editListPlayer(UUID playerUUID, Boolean shared, ConfigJsonObj.Category type, String nickname)
+    public boolean editClientListPlayer(UUID playerUUID, ConfigJsonObj.Category type, String nickname)
     {
-        ConfigJsonObj.PlayerData player = config.playerCatList.get(playerUUID);
+        ConfigJsonObj.PlayerData player = config.clientPlayerList.get(playerUUID);
         if (player != null)
         {
-            if (shared != null) player.shared = shared;
             if (type != null) player.type = type;
             if (nickname != null) player.nickname = nickname;
             save();
@@ -136,11 +143,11 @@ public class ConfigManager
         return false;
     }
 
-    public boolean removeListPlayer(String playerName) { return removeListPlayer(config.playerNameList.get(playerName)); }
+    public boolean removeClientListPlayer(String playerName) { return removeClientListPlayer(config.playerNameList.get(playerName)); }
 
-    public boolean removeListPlayer(UUID playerUUID)
+    public boolean removeClientListPlayer(UUID playerUUID)
     {
-        if (config.playerCatList.remove(playerUUID) != null | config.playerNameList.remove(config.getNameFromList(playerUUID)) != null)
+        if (config.clientPlayerList.remove(playerUUID) != null | config.playerNameList.values().remove(playerUUID))
         {
             save();
             return true;
@@ -148,9 +155,16 @@ public class ConfigManager
         return false;
     }
 
+    public void setServerList(Map<UUID, ConfigJsonObj.PlayerData> playerList)
+    {
+        config.serverPlayerList.clear();
+        config.serverPlayerList.putAll(playerList);
+
+    }
+
     public void resetList()
     {
-        config.playerCatList.clear();
+        config.clientPlayerList.clear();
         config.playerNameList.clear();
         save();
     }

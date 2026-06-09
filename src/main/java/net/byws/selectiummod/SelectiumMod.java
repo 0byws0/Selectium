@@ -38,7 +38,6 @@ public class SelectiumMod implements ModInitializer
 
 		ClientTickEvents.START_CLIENT_TICK.register(client ->
 		{
-			WebSocketListener.getInstance().updateConfig();
 			ConfigManager.getInstance().updatePlayerData();
 		});
 	}
