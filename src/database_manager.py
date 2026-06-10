@@ -29,6 +29,7 @@ class DatabaseManager:
                             return Player.Category(field_input).name
                     case self.DISCORD:
                         return int(field_input)
+
             except ValueError:
                 pass
 
@@ -89,7 +90,7 @@ class DatabaseManager:
         set_clauses = []
         payload = {"input":field_input}
 
-        for key, value in updates.items():
+        for key, value in updates.items(): # update to use convert?
             if key in database_columns:
                 set_clauses.append(f"{key}=:{key}")
                 payload[key] = value.name if key == self.Fields.CATEGORY.value else value

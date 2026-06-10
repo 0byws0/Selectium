@@ -11,7 +11,7 @@ from src.player_handler import Player
 class PlayerList(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.last_upd = {"cat":Player.Category.ALLY, "uuid":None}
+        self.upd_last_uuid = None
         self.update.start()
 
     def cog_unload(self):
@@ -59,19 +59,19 @@ class PlayerList(commands.Cog):
     @app_commands.command(name="player_edit")
     @app_commands.guilds(discord.Object(GUILD_ID))
     async def player_edit(self, interaction, field: DatabaseManager.Fields, field_input: str, alt: str = None,
-                            clan: str = None, category: Player.Category = None, discord_id: str = None):  # discord.Member
+                            clan: str = None, category: Player.Category = None, discord_id: str = None):
         await interaction.response.defer()
 
         upd_params = {}
-        if alt is not None: upd_params["alias"] = alt if alt != "-" else None
-        if clan is not None: upd_params["org"] = clan if clan != "-" else None
-        if category is not None: upd_params["cat"] = category
-        if discord_id is not None: upd_params["dc_id"] = int(discord_id) if discord_id.isdigit() else None
+        if alt is not None: upd_params[DatabaseManager.Fields.ALT.value] = alt if alt != "-" else None
+        if clan is not None: upd_params[DatabaseManager.Fields.CLAN.value] = clan if clan != "-" else None
+        if category is not None: upd_params[DatabaseManager.Fields.CATEGORY.value] = category
+        if discord_id is not None: upd_params[DatabaseManager.Fields.DISCORD.value] = int(discord_id) if discord_id.isdigit() else None
 
         if upd_params:
             if player_names := await self.bot.db.update_player(field, field_input, **upd_params):
                 await interaction.followup.send(f"Player(s) {', '.join(player_names)} updated")
-                await self.bot.conn_manager.broadcast()
+                if category is not None or alt is not None: await self.bot.conn_manager.broadcast()
             else:
                 await interaction.followup.send(f"{field.name.capitalize()} {field_input} not found in database")
         else:
@@ -127,31 +127,24 @@ class PlayerList(commands.Cog):
     #     choices += await self.field_input_autocomplete(interaction, current)
     #     return choices
 
-    async def update_player_data(self):
-        cat_list = list(Player.Category)
-        upd_count = 0
-        players = await self.bot.db.get_player(DatabaseManager.Fields.CATEGORY, self.last_upd["cat"])
-
-        if self.last_upd["uuid"] is not None:
-            players = players[next((i for i, p in enumerate(players) if p.mc_uuid == self.last_upd["uuid"]), 0):]
+    @tasks.loop(minutes=30)
+    async def update(self):
+        players = await self.bot.db.get_player()
+        upd_count = -next((i for i, p in enumerate(players) if p.mc_uuid == self.upd_last_uuid), 0)
+        self.upd_last_uuid = None
 
         for player_data in players:
-            if upd_count >= 150:
-                self.last_upd["uuid"] = player_data.mc_uuid
-                break
+            if self.upd_last_uuid is None:
+                if upd_count >= 150:
+                    self.upd_last_uuid = player_data.mc_uuid
+                elif upd_count >= 0:
+                    await player_data.update()
+                    print(player_data.mc_name) # remove later
+                    await self.bot.db.update_player(DatabaseManager.Fields.UUID, player_data.mc_uuid, mc_name=player_data.mc_name)
+                upd_count += 1
 
-            await player_data.update()
-            print(player_data.mc_name) # remove later
-            await self.bot.db.update_player(DatabaseManager.Fields.UUID, player_data.mc_uuid, mc_name=player_data.mc_name)
-            upd_count += 1
-        else:
-            self.last_upd["uuid"] = None
-            self.last_upd["cat"] = cat_list[(cat_list.index(self.last_upd["cat"]) + 1) % len(cat_list)]
-
-    @tasks.loop(minutes=1)
-    async def update(self):
-        await self.update_player_data()
-        await self.bot.get_cog("Announcements").update_list_channels()
+            await self.bot.get_cog("Announcements").append_list_player(player_data)
+        await self.bot.get_cog("Announcements").push_list_update()
 
     @update.before_loop
     async def before_update(self):
