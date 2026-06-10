@@ -22,15 +22,19 @@ class ConnectionManager:
 
     async def broadcast(self,  websocket: WebSocket = None):
         players = await self.db.get_player()
-        payload = {str(player_data.mc_uuid):
-                  {"shared":True,"type":player_data.cat.name,"nickname":player_data.alias or ""}
-                   for player_data in players}
+        message = {"action":"update_all_players",
+                   "payload":{str(player_data.mc_uuid):
+                                  {"shared":True,
+                                   "type":player_data.cat.name,
+                                   "nickname":player_data.alias or ""}
+                              for player_data in players}
+                   }
 
         websocket_list = self.active_connections.copy() if websocket is None else [websocket]
 
         for conn in websocket_list:
             try:
-                await conn.send_json(payload)
+                await conn.send_json(message)
             except Exception:
                 await self.disconnect(conn)
 

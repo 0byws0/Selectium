@@ -45,7 +45,6 @@ class Announcements(commands.Cog):
                 db_msg_ids[disp_config["msg_idx"]] = (await channel.send(list_str)).id
 
         self.player_list.clear()
-
         await self.bot.db.insert_list_id(GUILD_ID, *db_msg_ids)
 
 async def setup(bot):

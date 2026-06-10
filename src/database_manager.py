@@ -14,26 +14,26 @@ class DatabaseManager:
         DISCORD = "dc_id"
 
         def convert(self, field_input):
+            if field_input is None: return None
             try:
                 match self:
                     case self.UUID:
-                        if isinstance(field_input, UUID):
-                            return field_input.bytes
-                        return UUID(field_input).bytes
+                        return field_input.bytes if isinstance(field_input, UUID) else UUID(field_input).bytes
+
                     case self.USERNAME | self.CLAN | self.ALT:
                         return str(field_input)
+
                     case self.CATEGORY:
                         try:
                             return Player.Category[field_input].name
                         except KeyError:
                             return Player.Category(field_input).name
+
                     case self.DISCORD:
                         return int(field_input)
 
-            except ValueError:
-                pass
-
-            return None
+            except (ValueError, TypeError, KeyError):
+                return None
 
         def collation(self):
             return "COLLATE NOCASE" if self in (self.USERNAME, self.ALT, self.CLAN) else ""
@@ -90,10 +90,10 @@ class DatabaseManager:
         set_clauses = []
         payload = {"input":field_input}
 
-        for key, value in updates.items(): # update to use convert?
-            if key in database_columns:
-                set_clauses.append(f"{key}=:{key}")
-                payload[key] = value.name if key == self.Fields.CATEGORY.value else value
+        for column, col_input in updates.items():
+            if column in database_columns:
+                set_clauses.append(f"{column}=:{column}")
+                payload[column] = self.Fields(column).convert(col_input)
 
         if not set_clauses: raise TypeError("No parameters provided")
 

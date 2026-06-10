@@ -66,7 +66,7 @@ class PlayerList(commands.Cog):
         if alt is not None: upd_params[DatabaseManager.Fields.ALT.value] = alt if alt != "-" else None
         if clan is not None: upd_params[DatabaseManager.Fields.CLAN.value] = clan if clan != "-" else None
         if category is not None: upd_params[DatabaseManager.Fields.CATEGORY.value] = category
-        if discord_id is not None: upd_params[DatabaseManager.Fields.DISCORD.value] = int(discord_id) if discord_id.isdigit() else None
+        if discord_id is not None: upd_params[DatabaseManager.Fields.DISCORD.value] = discord_id if discord_id.isdigit() else None
 
         if upd_params:
             if player_names := await self.bot.db.update_player(field, field_input, **upd_params):
@@ -127,7 +127,7 @@ class PlayerList(commands.Cog):
     #     choices += await self.field_input_autocomplete(interaction, current)
     #     return choices
 
-    @tasks.loop(minutes=30)
+    @tasks.loop(minutes=1)
     async def update(self):
         players = await self.bot.db.get_player()
         upd_count = -next((i for i, p in enumerate(players) if p.mc_uuid == self.upd_last_uuid), 0)
