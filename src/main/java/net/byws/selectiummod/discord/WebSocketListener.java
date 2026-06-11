@@ -1,6 +1,7 @@
 package net.byws.selectiummod.discord;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import org.slf4j.Logger;
 
@@ -61,15 +62,45 @@ public class WebSocketListener implements WebSocket.Listener
         websocket.request(1);
     }
 
+    private void updateList(Map<UUID, ConfigJsonObj.PlayerData> serverList)
+    {
+        ConfigManager configManager = ConfigManager.getInstance();
+        if (serverList == null) return;
+
+        for (var playerEntry : configManager.getPlayerList())
+        {
+            UUID playerUUID = playerEntry.getKey();
+            if (!playerEntry.getValue().clientSide && !serverList.containsKey(playerUUID)) configManager.removeListPlayer(playerUUID);
+        }
+
+        serverList.forEach((playerUUID, updatedPlayer) ->
+        {
+            ConfigJsonObj.PlayerData existingPlayer = configManager.getPlayerData(playerUUID);
+
+            if (existingPlayer == null)
+            {
+                configManager.addListPlayer(playerUUID, updatedPlayer.clientSide, updatedPlayer.type, updatedPlayer.nickname);
+            }
+            else if (!existingPlayer.clientSide)
+            {
+                configManager.editListPlayer(playerUUID, updatedPlayer.clientSide, updatedPlayer.type, updatedPlayer.nickname);
+            }
+        });
+    }
+
     @Override
     public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last)
     {
         try
         {
-            Map<UUID, ConfigJsonObj.PlayerData> incomingData = GSON.fromJson(data.toString(),
-                    new TypeToken<Map<UUID, ConfigJsonObj.PlayerData>>(){}.getType());
+            JsonObject message = GSON.fromJson(data.toString(), JsonObject.class);
+            switch(message.get("action").getAsString())
+            {
+                case "update_all_players":
+                    updateList(GSON.fromJson(message.get("payload"), new TypeToken<Map<UUID, ConfigJsonObj.PlayerData>>(){}.getType()));
+                    break;
+            }
 
-            if (incomingData != null) ConfigManager.getInstance().setServerList(incomingData);
         }
         catch (Exception e)
         {

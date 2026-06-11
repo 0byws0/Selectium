@@ -2,7 +2,6 @@ package net.byws.selectiummod.config;
 
 import net.minecraft.ChatFormatting;
 
-import java.util.HashMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -29,18 +28,19 @@ public class ConfigJsonObj
 
     public static class PlayerData
     {
+        public boolean clientSide;
         public Category type;
         public String nickname;
 
-        public PlayerData(Category type, String nickname)
+        public PlayerData(boolean clientSide, Category type, String nickname)
         {
+            this.clientSide = clientSide;
             this.type = type;
             this.nickname = nickname;
         }
     }
 
-    public HashMap<UUID, PlayerData> clientPlayerList = new HashMap<>();
-    public ConcurrentHashMap<UUID, PlayerData> serverPlayerList = new ConcurrentHashMap<>();
-    public HashMap<String, UUID> playerNameList = new HashMap<>();
+    public ConcurrentHashMap<UUID, PlayerData> playerList = new ConcurrentHashMap<>();
+    public ConcurrentHashMap<String, UUID> playerNameList = new ConcurrentHashMap<>();
     public boolean enableNameColor = true;
 }

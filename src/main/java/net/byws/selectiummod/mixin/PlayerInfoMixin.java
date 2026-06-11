@@ -8,6 +8,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import net.byws.selectiummod.config.ConfigJsonObj;
 import net.byws.selectiummod.config.ConfigManager;
 
 @Mixin(PlayerInfo.class)
@@ -23,17 +24,14 @@ public abstract class PlayerInfoMixin
         String playerName = playerInfo.getProfile().getName();
         MutableComponent mutableText = Component.empty().append(playerName);
 
-        var playerData = configManager.getPlayerData(playerInfo.getProfile().getId());
-        if (playerData.getRight() == null) playerData = configManager.getPlayerData(playerName);
+        ConfigJsonObj.PlayerData playerData = configManager.getPlayerData(playerInfo.getProfile().getId());
+        if (playerData == null) playerData = configManager.getPlayerData(playerName);
 
-        if (playerData.getRight() != null)
+        if (playerData != null)
         {
-            if (!playerName.equals(playerData.getRight().nickname) && !playerData.getRight().nickname.isEmpty())
-            {
-                mutableText.append(" (" + playerData.getRight().nickname + ")");
-            }
-            mutableText.withStyle((playerData.getLeft()) ? playerData.getRight().type.getClientColorFormatting()
-                    : playerData.getRight().type.getServerColorFormatting());
+            if (!playerName.equals(playerData.nickname) && !playerData.nickname.isEmpty()) mutableText.append(" (" + playerData.nickname + ")");
+            mutableText.withStyle((playerData.clientSide) ? playerData.type.getClientColorFormatting()
+                    : playerData.type.getServerColorFormatting());
         }
 
         cir.setReturnValue(mutableText);
