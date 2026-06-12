@@ -4,7 +4,6 @@ from discord.ext import commands, tasks
 import Paginator
 from uuid import UUID
 import secrets
-import hashlib
 
 from src.config import GUILD_ID, ACCESS_ROLE_ID
 from src.database_manager import DatabaseManager
@@ -134,7 +133,7 @@ class PlayerList(commands.Cog):
     async def update_player_data(self, player_data):
         await player_data.update()
 
-        if player_data.token is None and player_data.dc_id is not None:
+        if player_data.token_hash is None and player_data.dc_id is not None:
             guild = self.bot.get_guild(GUILD_ID)
             try:
                 dc_member = guild.get_member(player_data.dc_id) or await guild.fetch_member(player_data.dc_id)
@@ -145,8 +144,7 @@ class PlayerList(commands.Cog):
                     await dc_member.send(token)
                     await self.bot.db.update_player(DatabaseManager.Fields.UUID,
                                                     player_data.mc_uuid,
-                                                    {DatabaseManager.Fields.TOKEN.value:
-                                                         hashlib.sha256(token.encode("utf-8")).digest()})
+                                                    **{DatabaseManager.Fields.TOKEN.value:token})
             except (discord.NotFound, discord.Forbidden):
                 pass
 
@@ -162,7 +160,6 @@ class PlayerList(commands.Cog):
                     self.upd_last_uuid = player_data.mc_uuid
                 elif upd_count >= 0:
                     await self.update_player_data(player_data)
-                    print(player_data.mc_name) # remove later
                     await self.bot.db.update_player(DatabaseManager.Fields.UUID, player_data.mc_uuid, mc_name=player_data.mc_name)
                 upd_count += 1
 

@@ -1,6 +1,7 @@
 import aiosqlite
 from enum import Enum
 from uuid import UUID
+import hashlib
 
 from src.player_handler import Player
 
@@ -33,7 +34,11 @@ class DatabaseManager:
                     case self.DISCORD:
                         return int(field_input)
 
-            except (ValueError, TypeError, KeyError):
+                    case self.TOKEN:
+                        return field_input if (isinstance(field_input, bytes) and len(field_input) == 32) else \
+                            (hashlib.sha256(field_input.encode("utf-8") if isinstance(field_input, str) else field_input).digest())
+
+            except (ValueError, TypeError, KeyError, AttributeError):
                 return None
 
         def collation(self):

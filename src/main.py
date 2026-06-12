@@ -3,6 +3,7 @@ import uvicorn
 from contextlib import asynccontextmanager
 import asyncio
 import json
+import secrets
 
 from src.config import TOKEN
 from src.database_manager import DatabaseManager
@@ -77,7 +78,12 @@ async def verify_headers(websocket: WebSocket):
 
     if not conn_uuid or not conn_token: raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
 
-    if conn_token != "test": raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
+    token_hash = (player_data[0].token_hash if
+                    (player_data := await database.get_player(DatabaseManager.Fields.UUID, conn_uuid)) else
+                    DatabaseManager.Fields.TOKEN.convert("a48edc71a9209a3dea83b11319d9cb75bee53076020ff8a9a26989ce719e7df1"))
+
+    if not secrets.compare_digest(DatabaseManager.Fields.TOKEN.convert(conn_token), token_hash) or player_data is None:
+        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
 
 
 @app.websocket("/ws")
