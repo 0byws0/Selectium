@@ -40,6 +40,7 @@ public class ConfigJsonObj
         }
     }
 
+    public String token = "";
     public ConcurrentHashMap<UUID, PlayerData> playerList = new ConcurrentHashMap<>();
     public ConcurrentHashMap<String, UUID> playerNameList = new ConcurrentHashMap<>();
     public boolean enableNameColor = true;

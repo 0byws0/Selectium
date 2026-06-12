@@ -9,8 +9,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Set;
-import java.util.HashSet;
 import java.util.UUID;
 
 public class ConfigManager
@@ -22,14 +22,14 @@ public class ConfigManager
     private final Gson GSON;
     
     private ConfigJsonObj config;
-    private static Set<String> onlinePlayerNames;
+    private Map<String, UUID> onlinePlayers;
 
     private ConfigManager(Logger modLogger, Gson gson)
     {
         this.LOGGER = modLogger;
         this.GSON = gson;
         this.config = new ConfigJsonObj();
-        this.onlinePlayerNames = new HashSet<>();
+        this.onlinePlayers = new HashMap<>();
     }
 
     public static synchronized void init(final Logger modLogger, final Gson gson)
@@ -39,6 +39,12 @@ public class ConfigManager
             INSTANCE = new ConfigManager(modLogger, gson);
             INSTANCE.load();
         }
+    }
+
+    public static ConfigManager getInstance()
+    {
+        if (INSTANCE == null) throw new IllegalStateException("ConfigManager not initialized");
+        return INSTANCE;
     }
 
     private void load()
@@ -66,15 +72,9 @@ public class ConfigManager
         }
     }
 
-    public static ConfigManager getInstance()
-    {
-        if (INSTANCE == null) throw new IllegalStateException("ConfigManager not initialized");
-        return INSTANCE;
-    }
-
     public Set<Map.Entry<UUID, ConfigJsonObj.PlayerData>> getPlayerList() { return config.playerList.entrySet(); }
 
-    public Set<String> getOnlineNames() { return onlinePlayerNames; }
+    public Map<String, UUID> getOnlinePlayers() { return onlinePlayers; }
 
     public Set<String> getListNames() { return config.playerNameList.keySet(); }
 
@@ -90,19 +90,21 @@ public class ConfigManager
 
     public boolean getEnableNameInfo() { return config.enableNameColor; }
 
+    public String getToken() { return config.token; }
+
     public void updatePlayerData()
     {
         var connection = Minecraft.getInstance().getConnection();
         if (connection == null) return;
 
         boolean requiresSave = false;
-        onlinePlayerNames.clear();
+        onlinePlayers.clear();
 
-        for (var playerObj : connection.getOnlinePlayers())
+        for (var playerInfo : connection.getOnlinePlayers())
         {
-            UUID playerUUID = playerObj.getProfile().getId();
-            String playerName = playerObj.getProfile().getName();
-            onlinePlayerNames.add(playerName);
+            UUID playerUUID = playerInfo.getProfile().getId();
+            String playerName = playerInfo.getProfile().getName();
+            onlinePlayers.put(playerName, playerUUID);
             ConfigJsonObj.PlayerData player = config.playerList.get(playerUUID);
 
             if (player == null)
@@ -187,6 +189,12 @@ public class ConfigManager
     public void setEnableNameInfo(boolean enable)
     {
         config.enableNameColor = enable;
+        save();
+    }
+
+    public void setToken(String token)
+    {
+        config.token = token;
         save();
     }
 }

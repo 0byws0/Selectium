@@ -31,28 +31,30 @@ public class WebSocketListener implements WebSocket.Listener
 
     public static synchronized void init(Logger modLogger, Gson gson)
     {
-        if (INSTANCE != null) return;
-
-        WebSocketListener listener = new WebSocketListener(modLogger, gson);
-
-            HttpClient.newHttpClient().newWebSocketBuilder()
-                    .buildAsync(URI.create("ws://localhost:8000/ws"), listener)
-                    .thenAccept(ws ->
-                    {
-                        INSTANCE = listener;
-                        INSTANCE.discord_conn = ws;
-                    })
-                    .exceptionally(ex ->
-                    {
-                        modLogger.error("Selectium Mod failed to connect to websocket: {}", ex.getMessage());
-                        return null;
-                    });
+        if (INSTANCE == null) INSTANCE = new WebSocketListener(modLogger, gson);
     }
 
     public static WebSocketListener getInstance()
     {
         if (INSTANCE == null) throw new IllegalStateException("Websocket not initialized");
         return INSTANCE;
+    }
+
+    public void connect()
+    {
+        HttpClient.newHttpClient().newWebSocketBuilder()
+                .header("uuid", "0422ee86-9842-43dd-8fd7-3665aeb87552")
+                .header("token", ConfigManager.getInstance().getToken())
+                .buildAsync(URI.create("ws://localhost:8000/ws"), this)
+                .thenAccept(ws ->
+                {
+                    this.discord_conn = ws;
+                })
+                .exceptionally(ex ->
+                {
+                    LOGGER.error("Selectium Mod failed to connect to websocket: {}", ex.getMessage());
+                    return null;
+                });
     }
 
     @Override
