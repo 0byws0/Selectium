@@ -12,6 +12,7 @@ class DatabaseManager:
         CLAN = "org"
         ALT = "alias"
         DISCORD = "dc_id"
+        TOKEN = "token_hash"
 
         def convert(self, field_input):
             if field_input is None: return None
@@ -44,10 +45,6 @@ class DatabaseManager:
     async def connect(self):
         self.conn = await aiosqlite.connect("data/database.db")
 
-        # await self.conn.execute("DROP TABLE players")
-        # await self.conn.execute("DROP TABLE lists")
-        # await self.conn.commit()
-
         await self.conn.execute("PRAGMA journal_mode=WAL")
         await self.conn.execute(f"""CREATE TABLE IF NOT EXISTS players (
                         {self.Fields.UUID.value} BLOB PRIMARY KEY,
@@ -55,7 +52,8 @@ class DatabaseManager:
                         {self.Fields.CATEGORY.value} TEXT CHECK ({self.Fields.CATEGORY.value} IN ({", ".join(f"'{cat.name}'" for cat in Player.Category)})),
                         {self.Fields.CLAN.value} TEXT,
                         {self.Fields.ALT.value} TEXT,
-                        {self.Fields.DISCORD.value} INTEGER)""")
+                        {self.Fields.DISCORD.value} INTEGER,
+                        {self.Fields.TOKEN.value} BLOB)""")
         await self.conn.execute(f"""CREATE TABLE IF NOT EXISTS lists (
                                 server_id INTEGER PRIMARY KEY,
                                 ally_msg_id INTEGER,
@@ -68,14 +66,15 @@ class DatabaseManager:
 
     async def insert_player(self, player_data: Player):
         cur = await self.conn.execute(f"INSERT INTO players "
-                                      f"VALUES (:mc_uuid, :mc_name, :cat, :org, :alias, :dc_id) "
+                                      f"VALUES (:mc_uuid, :mc_name, :cat, :org, :alias, :dc_id, :token_hash) "
                                       f"ON CONFLICT ({self.Fields.UUID.value}) DO NOTHING",
                                       {"mc_uuid": player_data.mc_uuid.bytes,
                                        "mc_name": player_data.mc_name,
                                        "cat": player_data.cat.name,
                                        "org": player_data.org,
                                        "alias": player_data.alias,
-                                       "dc_id": player_data.dc_id})
+                                       "dc_id": player_data.dc_id,
+                                       "token_hash":player_data.token_hash})
 
         inserted = (cur.rowcount != 0)
         await self.conn.commit()
@@ -128,7 +127,7 @@ class DatabaseManager:
                         f"ORDER BY {self.Fields.UUID.value}",
                         {"input": field_input})
 
-        return [Player(UUID(bytes=row[0]), row[1], Player.Category[row[2]], row[3], row[4], row[5]) for row in await cur.fetchall()]
+        return [Player(UUID(bytes=row[0]), row[1], Player.Category[row[2]], row[3], row[4], row[5], row[6]) for row in await cur.fetchall()]
 
     async def remove_player(self, field: Fields, field_input):
         if not isinstance(field, self.Fields): raise TypeError("field is not a valid Fields enum")

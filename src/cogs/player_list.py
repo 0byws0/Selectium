@@ -3,8 +3,10 @@ from discord import app_commands
 from discord.ext import commands, tasks
 import Paginator
 from uuid import UUID
+import secrets
+import hashlib
 
-from src.config import GUILD_ID
+from src.config import GUILD_ID, ACCESS_ROLE_ID
 from src.database_manager import DatabaseManager
 from src.player_handler import Player
 
@@ -29,6 +31,7 @@ class PlayerList(commands.Cog):
         info_embed.add_field(name="Category:", value=player_data.cat.name, inline=False)
         info_embed.add_field(name="UUID:", value=player_data.mc_uuid, inline=False)
         info_embed.add_field(name="Discord Id:", value=player_data.dc_id, inline=False)
+        info_embed.add_field(name="Token:", value=player_data.token_hash, inline=False)
 
         return info_embed
 
@@ -59,7 +62,7 @@ class PlayerList(commands.Cog):
     @app_commands.command(name="player_edit")
     @app_commands.guilds(discord.Object(GUILD_ID))
     async def player_edit(self, interaction, field: DatabaseManager.Fields, field_input: str, alt: str = None,
-                            clan: str = None, category: Player.Category = None, discord_id: str = None):
+                            clan: str = None, category: Player.Category = None, discord_id: str = None, token: str = None):
         await interaction.response.defer()
 
         upd_params = {}
@@ -67,6 +70,7 @@ class PlayerList(commands.Cog):
         if clan is not None: upd_params[DatabaseManager.Fields.CLAN.value] = clan if clan != "-" else None
         if category is not None: upd_params[DatabaseManager.Fields.CATEGORY.value] = category
         if discord_id is not None: upd_params[DatabaseManager.Fields.DISCORD.value] = discord_id if discord_id.isdigit() else None
+        if token is not None: upd_params[DatabaseManager.Fields.TOKEN.value] = None
 
         if upd_params:
             if player_names := await self.bot.db.update_player(field, field_input, **upd_params):
@@ -127,7 +131,26 @@ class PlayerList(commands.Cog):
     #     choices += await self.field_input_autocomplete(interaction, current)
     #     return choices
 
-    @tasks.loop(minutes=1)
+    async def update_player_data(self, player_data):
+        await player_data.update()
+
+        if player_data.token is None and player_data.dc_id is not None:
+            guild = self.bot.get_guild(GUILD_ID)
+            try:
+                dc_member = guild.get_member(player_data.dc_id) or await guild.fetch_member(player_data.dc_id)
+
+                if discord.utils.get(dc_member.roles, id=ACCESS_ROLE_ID):
+                    token = secrets.token_hex(32)
+
+                    await dc_member.send(token)
+                    await self.bot.db.update_player(DatabaseManager.Fields.UUID,
+                                                    player_data.mc_uuid,
+                                                    {DatabaseManager.Fields.TOKEN.value:
+                                                         hashlib.sha256(token.encode("utf-8")).digest()})
+            except (discord.NotFound, discord.Forbidden):
+                pass
+
+    @tasks.loop(minutes=30)
     async def update(self):
         players = await self.bot.db.get_player()
         upd_count = -next((i for i, p in enumerate(players) if p.mc_uuid == self.upd_last_uuid), 0)
@@ -138,7 +161,7 @@ class PlayerList(commands.Cog):
                 if upd_count >= 150:
                     self.upd_last_uuid = player_data.mc_uuid
                 elif upd_count >= 0:
-                    await player_data.update()
+                    await self.update_player_data(player_data)
                     print(player_data.mc_name) # remove later
                     await self.bot.db.update_player(DatabaseManager.Fields.UUID, player_data.mc_uuid, mc_name=player_data.mc_name)
                 upd_count += 1

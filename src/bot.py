@@ -6,6 +6,7 @@ from src.config import GUILD_ID
 class SelectiumManager(commands.Bot):
     def __init__(self, db, conn_manager):
         intents = discord.Intents.default()
+        intents.members = True
         super().__init__(command_prefix="!", intents=intents)
 
         self.db = db
@@ -21,4 +22,5 @@ class SelectiumManager(commands.Bot):
         await self.tree.sync(guild=discord.Object(GUILD_ID))
 
     async def close(self):
+        print("Selectium Bot Disconnecting")
         await super().close()
