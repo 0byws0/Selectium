@@ -15,7 +15,7 @@ import java.util.UUID;
 
 public class ConfigManager
 {
-    private static ConfigManager INSTANCE;
+    private static volatile ConfigManager INSTANCE;
     private static final Path CONFIG_PATH =
             FabricLoader.getInstance().getConfigDir().resolve("config-selectium-mod.json");
     private final Logger LOGGER;
@@ -32,12 +32,17 @@ public class ConfigManager
         this.onlinePlayers = new HashMap<>();
     }
 
-    public static synchronized void init(final Logger modLogger, final Gson gson)
+    public static void init(final Logger modLogger, final Gson gson)
     {
-        if (INSTANCE == null)
+        if (INSTANCE != null) return;
+
+        synchronized (ConfigManager.class)
         {
-            INSTANCE = new ConfigManager(modLogger, gson);
-            INSTANCE.load();
+            if (INSTANCE == null)
+            {
+                INSTANCE = new ConfigManager(modLogger, gson);
+                INSTANCE.load();
+            }
         }
     }
 
@@ -49,10 +54,16 @@ public class ConfigManager
 
     private void load()
     {
+        if (!Files.exists(CONFIG_PATH))
+        {
+            save();
+            return;
+        }
+
         try
         {
-            if (!Files.exists(CONFIG_PATH)) save();
-            config = GSON.fromJson(Files.readString(CONFIG_PATH), ConfigJsonObj.class);
+            ConfigJsonObj loaded = GSON.fromJson(Files.readString(CONFIG_PATH), ConfigJsonObj.class);
+            if (loaded != null) config = loaded;
         }
         catch (IOException e)
         {
@@ -131,7 +142,8 @@ public class ConfigManager
 
     public boolean addListPlayer(UUID playerUUID, boolean clientSide, ConfigJsonObj.Category type, String nickname)
     {
-        if (playerUUID != null && config.playerList.putIfAbsent(playerUUID, new ConfigJsonObj.PlayerData(clientSide, type, nickname)) == null)
+        if (playerUUID != null && config.playerList.putIfAbsent(playerUUID,
+                new ConfigJsonObj.PlayerData(clientSide, type, (nickname == null) ? "" : nickname)) == null)
         {
             save();
             return true;

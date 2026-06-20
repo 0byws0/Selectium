@@ -1,7 +1,7 @@
 package net.byws.selectiummod;
 
 import com.google.gson.Gson;
-import net.fabricmc.api.ModInitializer;
+import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import org.slf4j.Logger;
@@ -11,7 +11,7 @@ import net.byws.selectiummod.command.SelectiumCommand;
 import net.byws.selectiummod.config.ConfigManager;
 import net.byws.selectiummod.discord.WebSocketListener;
 
-public class SelectiumMod implements ModInitializer
+public class SelectiumMod implements ClientModInitializer
 {
 
 	public static final String MOD_ID = "selectium-mod";
@@ -24,7 +24,7 @@ public class SelectiumMod implements ModInitializer
 	public static final Gson GSON = new Gson();
 
 	@Override
-	public void onInitialize()
+	public void onInitializeClient()
 	{
 		// This code runs as soon as Minecraft is in a mod-load-ready state.
 		// However, some things (like resources) may still be uninitialized.

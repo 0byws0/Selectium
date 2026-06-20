@@ -21,11 +21,17 @@
   "commands.selectium-mod.playerToggleInfo.enable": "Player name information shown",
   "commands.selectium-mod.playerToggleInfo.disable": "Player name information hidden",
 
+  "commands.selectium-mod.linkDiscord.attempting": "Connecting to discord server...",
+  "commands.selectium-mod.linkDiscord.connected": "Discord connection successful",
+  "commands.selectium-mod.linkDiscord.failed": "Discord connection failed",
+
   "commands.selectium-mod.showHelp.title": "Selectium Mod — Commands",
-  "commands.selectium-mod.showHelp.playerAdd": "Add or replace player on list",
+  "commands.selectium-mod.showHelp.playerAdd": "Add player on list",
+  "commands.selectium-mod.showHelp.playerEdit": "Replace player on list",
   "commands.selectium-mod.showHelp.playerRemove": "Remove player from list",
   "commands.selectium-mod.showHelp.playerNicknameEdit": "Add or replace nickname of player on list",
   "commands.selectium-mod.showHelp.playerNicknameRemove": "Remove nickname of player on list",
   "commands.selectium-mod.showHelp.playerClearAll": "Removed all players from list",
-  "commands.selectium-mod.showHelp.playerToggleInfo": "Enable or disable player name colors and nicknames"
+  "commands.selectium-mod.showHelp.playerToggleInfo": "Enable or disable player name colors and nicknames",
+  "commands.selectium-mod.showHelp.linkDiscord": "Link to Selectium discord server"
 }

@@ -129,8 +129,8 @@ public class SelectiumCommand
 
         try
         {
-            if (configManager.addListPlayer(configManager.getOnlinePlayers().get(nameOrUUID), true, type, "") ||
-                    configManager.addListPlayer(UUID.fromString(nameOrUUID), true, type, ""))
+            if (configManager.addListPlayer(configManager.getOnlinePlayers().get(nameOrUUID), true, type, null) ||
+                    configManager.addListPlayer(UUID.fromString(nameOrUUID), true, type, null))
             {
                 chatMessage(ctx, ChatFormatting.GRAY, "commands.selectium-mod.playerAdd.added", nameOrUUID, type.name());
             }
@@ -232,15 +232,28 @@ public class SelectiumCommand
         ConfigManager configManager = ConfigManager.getInstance();
 
         configManager.setEnableNameInfo(!configManager.getEnableNameInfo());
-        chatMessage(ctx, ChatFormatting.GRAY, (configManager.getEnableNameInfo() ? "commands.selectium-mod.playerToggleInfo.enable"
-                : "commands.selectium-mod.playerToggleInfo.disable"));
+        chatMessage(ctx, ChatFormatting.GRAY, configManager.getEnableNameInfo() ? "commands.selectium-mod.playerToggleInfo.enable"
+                : "commands.selectium-mod.playerToggleInfo.disable");
         return 1;
     }
 
     private static int linkDiscord(CommandContext<FabricClientCommandSource> ctx, String token)
     {
         ConfigManager.getInstance().setToken(token);
-        WebSocketListener.getInstance().connect();
+
+        chatMessage(ctx, ChatFormatting.WHITE, "commands.selectium-mod.linkDiscord.attempting");
+
+        WebSocketListener.getInstance().connect()
+                .thenAcceptAsync(ws ->
+                {
+                    chatMessage(ctx, ChatFormatting.WHITE, "commands.selectium-mod.linkDiscord.connected");
+                }, ctx.getSource().getClient()::execute)
+                .exceptionallyAsync(ex ->
+                {
+                    chatMessage(ctx, ChatFormatting.RED, "commands.selectium-mod.linkDiscord.failed");
+                    return null;
+                }, ctx.getSource().getClient()::execute);
+
         return 1;
     }
 
@@ -250,11 +263,13 @@ public class SelectiumCommand
 
         String[][] cmds = {
                 {"/selectium player add <name/UUID>", "commands.selectium-mod.showHelp.playerAdd"},
+                {"/selectium player edit <name/UUID>", "commands.selectium-mod.showHelp.playerEdit"},
                 {"/selectium player remove <name/UUID>", "commands.selectium-mod.showHelp.playerRemove"},
                 {"/selectium player nickname add <name/UUID> <nickname>", "commands.selectium-mod.showHelp.playerNicknameEdit"},
                 {"/selectium player nickname remove <name/UUID>", "commands.selectium-mod.showHelp.playerNicknameRemove"},
-                {"/selectium player toggleInfo", "commands.selectium-mod.showHelp.playerToggleInfo"},
                 {"/selectium player clearAll", "commands.selectium-mod.showHelp.playerClearAll"},
+                {"/selectium player toggleInfo", "commands.selectium-mod.showHelp.playerToggleInfo"},
+                {"/selectium linkDiscord <token>", "commands.selectium-mod.showHelp.linkDiscord"},
         };
 
         for (String[] cmd : cmds)
