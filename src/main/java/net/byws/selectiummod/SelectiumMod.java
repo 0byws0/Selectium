@@ -32,14 +32,19 @@ public class SelectiumMod implements ClientModInitializer
 
 		ConfigManager.init(LOGGER, GSON);
 		WebSocketListener.init(LOGGER, GSON);
-		WebSocketListener.getInstance().connect();
+
+		ConfigManager configManager = ConfigManager.getInstance();
+		WebSocketListener webSocketListener = WebSocketListener.getInstance();
+
+		webSocketListener.connect();
 
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
 				SelectiumCommand.register(dispatcher));
 
 		ClientTickEvents.START_CLIENT_TICK.register(client ->
 		{
-			ConfigManager.getInstance().updatePlayerData();
+			webSocketListener.update();
+			configManager.updatePlayerData();
 		});
 	}
 }

@@ -22,7 +22,8 @@
   "commands.selectium-mod.playerToggleInfo.disable": "Player name information hidden",
 
   "commands.selectium-mod.linkDiscord.attempting": "Connecting to discord server...",
-  "commands.selectium-mod.linkDiscord.connected": "Discord connection successful",
+  "commands.selectium-mod.linkDiscord.success": "Discord connection successful",
+  "commands.selectium-mod.linkDiscord.connected": "Already connected to Discord",
   "commands.selectium-mod.linkDiscord.failed": "Discord connection failed",
 
   "commands.selectium-mod.showHelp.title": "Selectium Mod — Commands",

@@ -83,21 +83,15 @@ public class ConfigManager
         }
     }
 
-    public Set<Map.Entry<UUID, ConfigJsonObj.PlayerData>> getPlayerList() { return config.playerList.entrySet(); }
+    public Map<UUID, ConfigJsonObj.PlayerData> getPlayerList() { return new HashMap<>(config.playerList); }
 
     public Map<String, UUID> getOnlinePlayers() { return onlinePlayers; }
 
     public Set<String> getListNames() { return config.playerNameList.keySet(); }
 
-    public ConfigJsonObj.PlayerData getPlayerData(String playerName)
-    {
-        return (playerName == null) ? null : getPlayerData(config.playerNameList.get(playerName));
-    }
+    public ConfigJsonObj.PlayerData getPlayerData(String playerName) { return getPlayerData(config.playerNameList.get(playerName)); }
 
-    public ConfigJsonObj.PlayerData getPlayerData(UUID playerUUID)
-    {
-        return (playerUUID == null) ? null : config.playerList.get(playerUUID);
-    }
+    public ConfigJsonObj.PlayerData getPlayerData(UUID playerUUID) { return config.playerList.get(playerUUID); }
 
     public boolean getEnableNameInfo() { return config.enableNameColor; }
 
@@ -120,8 +114,7 @@ public class ConfigManager
 
             if (player == null)
             {
-                playerUUID = config.playerNameList.get(playerName);
-                player = (playerUUID == null) ? null : config.playerList.get(playerUUID);
+                player = config.playerList.get(config.playerNameList.get(playerName));
             }
             else if (!playerUUID.equals(config.playerNameList.get(playerName)))
             {
@@ -142,8 +135,8 @@ public class ConfigManager
 
     public boolean addListPlayer(UUID playerUUID, boolean clientSide, ConfigJsonObj.Category type, String nickname)
     {
-        if (playerUUID != null && config.playerList.putIfAbsent(playerUUID,
-                new ConfigJsonObj.PlayerData(clientSide, type, (nickname == null) ? "" : nickname)) == null)
+        if (playerUUID != null &&
+                config.playerList.putIfAbsent(playerUUID, new ConfigJsonObj.PlayerData(clientSide, type, (nickname == null) ? "" : nickname)) == null)
         {
             save();
             return true;
@@ -151,42 +144,30 @@ public class ConfigManager
         return false;
     }
 
-    public boolean editListPlayer(String playerName, Boolean clientSide, ConfigJsonObj.Category type, String nickname)
-    {
-        return playerName != null && editListPlayer(config.playerNameList.get(playerName), clientSide, type, nickname);
-    }
+    public boolean editListPlayer(String playerName, Boolean clientSide, ConfigJsonObj.Category type, String nickname)  { return editListPlayer(config.playerNameList.get(playerName), clientSide, type, nickname); }
 
     public boolean editListPlayer(UUID playerUUID, Boolean clientSide, ConfigJsonObj.Category type, String nickname)
     {
-        if (playerUUID != null)
+        ConfigJsonObj.PlayerData player = config.playerList.get(playerUUID);
+        if (player != null)
         {
-            ConfigJsonObj.PlayerData player = config.playerList.get(playerUUID);
-            if (player != null)
-            {
-                if (clientSide != null) player.clientSide = clientSide;
-                if (type != null) player.type = type;
-                if (nickname != null) player.nickname = nickname;
-                save();
-                return true;
-            }
+            if (clientSide != null) player.clientSide = clientSide;
+            if (type != null) player.type = type;
+            if (nickname != null) player.nickname = nickname;
+            save();
+            return true;
         }
         return false;
     }
 
-    public boolean removeListPlayer(String playerName)
-    {
-        return playerName != null && removeListPlayer(config.playerNameList.get(playerName));
-    }
+    public boolean removeListPlayer(String playerName) { return removeListPlayer(config.playerNameList.get(playerName)); }
 
     public boolean removeListPlayer(UUID playerUUID)
     {
-        if (playerUUID != null)
+        if (config.playerList.remove(playerUUID) != null | config.playerNameList.values().remove(playerUUID))
         {
-            if (config.playerList.remove(playerUUID) != null | config.playerNameList.values().remove(playerUUID))
-            {
-                save();
-                return true;
-            }
+            save();
+            return true;
         }
         return false;
     }

@@ -239,21 +239,33 @@ public class SelectiumCommand
 
     private static int linkDiscord(CommandContext<FabricClientCommandSource> ctx, String token)
     {
-        ConfigManager.getInstance().setToken(token);
+        WebSocketListener webSocketListener = WebSocketListener.getInstance();
 
-        chatMessage(ctx, ChatFormatting.WHITE, "commands.selectium-mod.linkDiscord.attempting");
+        if (webSocketListener.isConnected())
+        {
+            chatMessage(ctx, ChatFormatting.RED, "commands.selectium-mod.linkDiscord.connected");
+        }
+        else if (webSocketListener.isConnecting())
+        {
+            chatMessage(ctx, ChatFormatting.RED, "commands.selectium-mod.linkDiscord.attempting");
+        }
+        else
+        {
+            ConfigManager.getInstance().setToken(token);
 
-        WebSocketListener.getInstance().connect()
-                .thenAcceptAsync(ws ->
-                {
-                    chatMessage(ctx, ChatFormatting.WHITE, "commands.selectium-mod.linkDiscord.connected");
-                }, ctx.getSource().getClient()::execute)
-                .exceptionallyAsync(ex ->
-                {
-                    chatMessage(ctx, ChatFormatting.RED, "commands.selectium-mod.linkDiscord.failed");
-                    return null;
-                }, ctx.getSource().getClient()::execute);
+            chatMessage(ctx, ChatFormatting.WHITE, "commands.selectium-mod.linkDiscord.attempting");
 
+            webSocketListener.connect()
+                    .thenAcceptAsync(ws ->
+                    {
+                        chatMessage(ctx, ChatFormatting.WHITE, "commands.selectium-mod.linkDiscord.success");
+                    }, ctx.getSource().getClient()::execute)
+                    .exceptionallyAsync(ex ->
+                    {
+                        chatMessage(ctx, ChatFormatting.RED, "commands.selectium-mod.linkDiscord.failed");
+                        return null;
+                    }, ctx.getSource().getClient()::execute);
+        }
         return 1;
     }
 
