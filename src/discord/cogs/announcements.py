@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 
 from src.config import GUILD_ID, ALLY_CHANNEL_ID, NEUTRAL_CHANNEL_ID, TARGET_CHANNEL_ID
-from src.player_handler import Player
+from src.database.player_handler import Player
 
 class Announcements(commands.Cog):
     NO_ORG = "OTROS / OTHERS"

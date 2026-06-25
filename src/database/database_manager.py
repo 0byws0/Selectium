@@ -3,7 +3,7 @@ from enum import Enum
 from uuid import UUID
 import hashlib
 
-from src.player_handler import Player
+from src.database.player_handler import Player
 
 class DatabaseManager:
     class Fields(Enum):
@@ -44,11 +44,12 @@ class DatabaseManager:
         def collation(self):
             return "COLLATE NOCASE" if self in (self.USERNAME, self.ALT, self.CLAN) else ""
 
-    def __init__(self):
+    def __init__(self, db_path: str = "data/database.db"):
         self.conn = None
+        self.db_path = db_path
 
     async def connect(self):
-        self.conn = await aiosqlite.connect("data/database.db")
+        self.conn = await aiosqlite.connect(self.db_path)
 
         await self.conn.execute("PRAGMA journal_mode=WAL")
         await self.conn.execute(f"""CREATE TABLE IF NOT EXISTS players (
@@ -105,13 +106,13 @@ class DatabaseManager:
                     f"{', '.join(set_clauses)} "
                     f"WHERE {field.value}=:input "
                     f"{field.collation()} "
-                    f"RETURNING {self.Fields.USERNAME.value}",
+                    f"RETURNING *",
                     payload)
 
         rows = await cur.fetchall()
         await self.conn.commit()
 
-        return [row[0] for row in rows]
+        return [Player(UUID(bytes=row[0]), row[1], Player.Category[row[2]], row[3], row[4], row[5], row[6]) for row in rows]
 
     # async def get_field(self, field: Fields):
     #     if not isinstance(field, self.Fields): raise TypeError("field is not a valid Fields enum")
@@ -141,13 +142,13 @@ class DatabaseManager:
         cur = await self.conn.execute(f"DELETE FROM players "
                     f"WHERE {field.value}=:input "
                     f"{field.collation()} "
-                    f"RETURNING {self.Fields.USERNAME.value}",
+                    f"RETURNING *",
                     {"input":field_input})
 
         rows = await cur.fetchall()
         await self.conn.commit()
 
-        return [row[0] for row in rows]
+        return [Player(UUID(bytes=row[0]), row[1], Player.Category[row[2]], row[3], row[4], row[5], row[6]) for row in rows]
 
     async def insert_list_id(self, server_id: int, ally_msg_id: int = None, neutral_msg_id: int = None, target_msg_id: int = None):
         if ally_msg_id is None and neutral_msg_id is None and target_msg_id is None: raise TypeError("No parameters provided")

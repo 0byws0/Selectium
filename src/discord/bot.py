@@ -3,6 +3,9 @@ from discord.ext import commands
 
 from src.config import GUILD_ID
 
+import sys
+print(sys.path)
+
 class SelectiumManager(commands.Bot):
     def __init__(self, db, conn_manager):
         intents = discord.Intents.default()
@@ -17,8 +20,8 @@ class SelectiumManager(commands.Bot):
         print("Selectium Bot Ready")
 
     async def setup_hook(self):
-        await self.load_extension("cogs.player_list")
-        await self.load_extension("cogs.announcements")
+        await self.load_extension("discord.cogs.player_list")
+        await self.load_extension("discord.cogs.announcements")
         await self.tree.sync(guild=discord.Object(GUILD_ID))
 
     async def close(self):

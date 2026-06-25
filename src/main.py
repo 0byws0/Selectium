@@ -2,56 +2,13 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, WebSocketException,
 import uvicorn
 from contextlib import asynccontextmanager
 import asyncio
-import json
 import secrets
 
 from src.config import TOKEN
-from src.database_manager import DatabaseManager
-from src.bot import SelectiumManager
-from src.player_handler import MojangAPI
-
-class ConnectionManager:
-    def __init__(self, db):
-        self.active_connections: list[WebSocket] = []
-        self.db = db
-
-    async def connect(self, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections.append(websocket)
-
-    async def disconnect(self, websocket: WebSocket):
-        if websocket in self.active_connections: self.active_connections.remove(websocket)
-
-    # async def broadcast_update(self, action: str, payload):
-    #     message = json.dumps({"action": action, "payload":payload}, separators=(",", ":"))
-    #
-    #     async def send_message(conn):
-    #         try:
-    #             await conn.send(message)
-    #         except Exception:
-    #             await self.disconnect(conn)
-    #
-    #     if websocket_list := self.active_connections.copy():
-    #         await asyncio.gather(*(send_message(websocket) for websocket in websocket_list), return_exceptions=True)
-
-    async def broadcast(self,  websocket: WebSocket = None):
-        players = await self.db.get_player()
-        message = json.dumps({"action":"update_all_players",
-                              "payload":{str(player_data.mc_uuid):
-                                             {"shared":True,
-                                              "type":player_data.cat.name,
-                                              "nickname":player_data.alias or ""}
-                                         for player_data in players}
-                              }, separators=(",", ":")) #.encode("utf-8")
-
-        async def send_message(conn):
-            try:
-                await conn.send_text(message)
-            except Exception:
-                await self.disconnect(conn)
-
-        if websocket_list := (self.active_connections.copy() if websocket is None else [websocket]):
-            await asyncio.gather(*(send_message(conn) for conn in websocket_list), return_exceptions=True)
+from src.database.database_manager import DatabaseManager
+from src.websocket.connection_manager import ConnectionManager
+from src.discord.bot import SelectiumManager
+from src.database.player_handler import MojangAPI
 
 database = DatabaseManager()
 conn_manager = ConnectionManager(database)
@@ -70,6 +27,7 @@ async def lifespan(app):
     await database.close()
     await MojangAPI.close()
 
+DUMMY_TOKEN = DatabaseManager.Fields.TOKEN.convert(secrets.token_hex(32))
 app = FastAPI(lifespan=lifespan)
 
 async def verify_headers(websocket: WebSocket):
@@ -78,20 +36,22 @@ async def verify_headers(websocket: WebSocket):
 
     if not conn_uuid or not conn_token: raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
 
-    token_hash = (player_data[0].token_hash if
-                    (player_data := await database.get_player(DatabaseManager.Fields.UUID, conn_uuid)) else
-                    DatabaseManager.Fields.TOKEN.convert("a48edc71a9209a3dea83b11319d9cb75bee53076020ff8a9a26989ce719e7df1"))
+    player_data = await database.get_player(DatabaseManager.Fields.UUID, conn_uuid)
 
-    if not secrets.compare_digest(DatabaseManager.Fields.TOKEN.convert(conn_token), token_hash) or player_data is None:
+    player_valid = bool(player_data)
+    token_valid = secrets.compare_digest(DatabaseManager.Fields.TOKEN.convert(conn_token),
+                                         (player_data[0].token_hash if player_valid else None) or DUMMY_TOKEN)
+
+    if not player_valid or not token_valid:
         raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
-
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, auth = Depends(verify_headers)):
+    await asyncio.sleep(3) # remove later
     await conn_manager.connect(websocket)
 
     try:
-        await conn_manager.broadcast(websocket)
+        await conn_manager.init_broadcast(websocket)
         while True:
             data = await websocket.receive_text()
     except WebSocketDisconnect:

@@ -6,8 +6,9 @@ from uuid import UUID
 import secrets
 
 from src.config import GUILD_ID, ACCESS_ROLE_ID
-from src.database_manager import DatabaseManager
-from src.player_handler import Player
+from src.database.database_manager import DatabaseManager
+from src.websocket.connection_manager import ConnectionManager
+from src.database.player_handler import Player
 
 class PlayerList(commands.Cog):
     def __init__(self, bot):
@@ -20,17 +21,24 @@ class PlayerList(commands.Cog):
 
     @staticmethod
     def player_info_embed(player_data: Player) -> discord.Embed:
-        info_embed = discord.Embed(
-            title="Selectium Database",
-            color=player_data.cat.color
-        )
+        info_embed = discord.Embed(title="Selectium Database", color=player_data.cat.color)
+
         info_embed.add_field(name="Username:", value=player_data.mc_name, inline=False)
         info_embed.add_field(name="Alt:", value=player_data.alias, inline=False)
         info_embed.add_field(name="Clan:", value=player_data.org, inline=False)
         info_embed.add_field(name="Category:", value=player_data.cat.name, inline=False)
         info_embed.add_field(name="UUID:", value=player_data.mc_uuid, inline=False)
         info_embed.add_field(name="Discord Id:", value=player_data.dc_id, inline=False)
-        info_embed.add_field(name="Token:", value=player_data.token_hash, inline=False)
+        info_embed.add_field(name="Token:", value="Active" if player_data.token_hash else None, inline=False)
+
+        return info_embed
+
+    @staticmethod
+    def token_embed(token: str) -> discord.Embed:
+        info_embed = discord.Embed(title="Selectium Mod", description="Placeholder") # add description
+
+        info_embed.add_field(name="Mod Link:", value="https://modrinth.com/mod/selectium-mod", inline=False)
+        info_embed.add_field(name="Token (DO NOT SHARE):", value=token, inline=False)
 
         return info_embed
 
@@ -51,10 +59,10 @@ class PlayerList(commands.Cog):
         try:
             player_data = await Player.create(player_uuid, player_username, category)
             if await self.bot.db.insert_player(player_data):
-                await interaction.followup.send(f"Player {player_data.mc_name} added")
-                await self.bot.conn_manager.broadcast()
+                await interaction.followup.send(f"Player `{player_data.mc_name}` added")
+                await self.bot.conn_manager.broadcast(ConnectionManager.Actions.LIST_ADD, player_data)
             else:
-                await interaction.followup.send(f"Player {player_data.mc_name} already in database")
+                await interaction.followup.send(f"Player `{player_data.mc_name}` already in database")
         except ValueError:
             await interaction.followup.send(f"Failed to add player {name_or_uuid}")
 
@@ -72,9 +80,9 @@ class PlayerList(commands.Cog):
         if token is not None: upd_params[DatabaseManager.Fields.TOKEN.value] = None
 
         if upd_params:
-            if player_names := await self.bot.db.update_player(field, field_input, **upd_params):
-                await interaction.followup.send(f"Player(s) {', '.join(player_names)} updated")
-                if category is not None or alt is not None: await self.bot.conn_manager.broadcast()
+            if player_data_list := await self.bot.db.update_player(field, field_input, **upd_params):
+                await interaction.followup.send(f"Player(s) {' '.join([f'`{player_data.mc_name}`' for player_data in player_data_list])} updated")
+                if category is not None or alt is not None: await self.bot.conn_manager.broadcast(ConnectionManager.Actions.LIST_EDIT, player_data_list)
             else:
                 await interaction.followup.send(f"{field.name.capitalize()} {field_input} not found in database")
         else:
@@ -95,9 +103,9 @@ class PlayerList(commands.Cog):
     async def player_remove(self, interaction, field: DatabaseManager.Fields, field_input: str):
         await interaction.response.defer()
 
-        if player_names := await self.bot.db.remove_player(field, field_input):
-            await interaction.followup.send(f"Player(s) {', '.join(player_names)} removed")
-            await self.bot.conn_manager.broadcast()
+        if player_data_list := await self.bot.db.remove_player(field, field_input):
+            await interaction.followup.send(f"Player(s) {' '.join([f'`{player_data.mc_name}`' for player_data in player_data_list])} removed")
+            await self.bot.conn_manager.broadcast(ConnectionManager.Actions.LIST_REMOVE, player_data_list)
         else:
             await interaction.followup.send(f"{field.name.capitalize()} {field_input} not found database")
 
@@ -141,14 +149,14 @@ class PlayerList(commands.Cog):
                 if discord.utils.get(dc_member.roles, id=ACCESS_ROLE_ID):
                     token = secrets.token_hex(32)
 
-                    await dc_member.send(token)
+                    await dc_member.send(embed=self.token_embed(token))
                     await self.bot.db.update_player(DatabaseManager.Fields.UUID,
                                                     player_data.mc_uuid,
                                                     **{DatabaseManager.Fields.TOKEN.value:token})
             except (discord.NotFound, discord.Forbidden):
                 pass
 
-    @tasks.loop(minutes=30)
+    @tasks.loop(minutes=1)
     async def update(self):
         players = await self.bot.db.get_player()
         upd_count = -next((i for i, p in enumerate(players) if p.mc_uuid == self.upd_last_uuid), 0)
