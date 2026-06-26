@@ -66,10 +66,10 @@ public class SelectiumCommand
 
                         .then(ClientCommandManager.literal("player")
 
-                                // /playerAdd <name/UUID>
+                                // /playerAdd <Category> <name/UUID>
                                 .then(playerAddLiteral)
 
-                                // /playerEdit <name/UUID>
+                                // /playerEdit <Category> <name/UUID>
                                 .then(playerEditLiteral)
 
                                 // /playerRemove <name/UUID>
@@ -108,12 +108,18 @@ public class SelectiumCommand
                         )
 
                         .then(ClientCommandManager.literal("discord")
+
+                                // /discordLink <token>
                                 .then(ClientCommandManager.literal("link")
                                         .then(ClientCommandManager.argument("token", StringArgumentType.word())
                                         .executes(ctx -> discordSet(ctx,
                                                 StringArgumentType.getString(ctx, "token")))))
+
+                                // /discordReink
                                 .then(ClientCommandManager.literal("relink")
                                         .executes(ctx -> discordSet(ctx, null)))
+
+                                // /discordUnlink
                                 .then(ClientCommandManager.literal("unlink")
                                         .executes(ctx -> discordSet(ctx, ""))))
 
@@ -312,14 +318,16 @@ public class SelectiumCommand
         chatHeader(ctx, ChatFormatting.YELLOW,"commands.selectium-mod.showHelp.title");
 
         String[][] cmds = {
-                {"/selectium player add <name/UUID>", "commands.selectium-mod.showHelp.playerAdd"},
-                {"/selectium player edit <name/UUID>", "commands.selectium-mod.showHelp.playerEdit"},
+                {"/selectium player add <Category> <name/UUID>", "commands.selectium-mod.showHelp.playerAdd"},
+                {"/selectium player edit <Category> <name/UUID>", "commands.selectium-mod.showHelp.playerEdit"},
                 {"/selectium player remove <name/UUID>", "commands.selectium-mod.showHelp.playerRemove"},
                 {"/selectium player nickname add <name/UUID> <nickname>", "commands.selectium-mod.showHelp.playerNicknameEdit"},
                 {"/selectium player nickname remove <name/UUID>", "commands.selectium-mod.showHelp.playerNicknameRemove"},
                 {"/selectium player clearAll", "commands.selectium-mod.showHelp.playerClearAll"},
                 {"/selectium player toggleInfo", "commands.selectium-mod.showHelp.playerToggleInfo"},
-                {"/selectium discord Link <token>", "commands.selectium-mod.showHelp.discordLink"},
+                {"/selectium discord link <token>", "commands.selectium-mod.showHelp.discordLink"},
+                {"/selectium discord relink", "commands.selectium-mod.showHelp.discordRelink"},
+                {"/selectium discord unlink", "commands.selectium-mod.showHelp.discordUnlink"},
         };
 
         for (String[] cmd : cmds)

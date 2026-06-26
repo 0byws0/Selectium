@@ -35,5 +35,7 @@
   "commands.selectium-mod.showHelp.playerNicknameRemove": "Remove nickname of player on list",
   "commands.selectium-mod.showHelp.playerClearAll": "Removed all players from list",
   "commands.selectium-mod.showHelp.playerToggleInfo": "Enable or disable player name colors and nicknames",
-  "commands.selectium-mod.showHelp.discordLink": "Link to Selectium discord server"
+  "commands.selectium-mod.showHelp.discordLink": "Connect to Selectium discord server",
+  "commands.selectium-mod.showHelp.discordRelink": "Reconnect to Selectium discord server",
+  "commands.selectium-mod.showHelp.discordUnlink": "Disconnect to Selectium discord server"
 }

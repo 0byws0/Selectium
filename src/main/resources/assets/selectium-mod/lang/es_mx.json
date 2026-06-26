@@ -1,27 +1,41 @@
 {
-  "commands.selectium-mod.addPlayer.added": "%1$s añadido a la lista como %2$s",
-  "commands.selectium-mod.addPlayer.replaced": "%1$s reemplazado en la lista como %2$s",
-  "commands.selectium-mod.addPlayer.invalid": "UUID inválido",
+  "commands.selectium-mod.playerAdd.added": "%1$s agregado a la lista como %2$s",
+  "commands.selectium-mod.playerAdd.failed": "%1$s ya está en la lista",
+  "commands.selectium-mod.playerAdd.invalid": "UUID no válido",
 
-  "commands.selectium-mod.removePlayer.removed": "%1$s eliminado de la lista",
-  "commands.selectium-mod.removePlayer.failed": "%1$s no estaba en la lista",
-  "commands.selectium-mod.removePlayer.invalid": "UUID inválido",
+  "commands.selectium-mod.playerEdit.edited": "%1$s cambiado a %2$s",
+  "commands.selectium-mod.playerEdit.failed": "%1$s no está en la lista",
+  "commands.selectium-mod.playerEdit.invalid": "UUID no válido",
 
-  "commands.selectium-mod.setNickname.set": "Apodo de %1$s establecido como %2$s",
-  "commands.selectium-mod.setNickname.removed": "Apodo de %1$s eliminado de la lista",
-  "commands.selectium-mod.setNickname.failed": "%1$s no estaba en la lista",
-  "commands.selectium-mod.setNickname.invalid": "UUID inválido o no está en la lista",
+  "commands.selectium-mod.playerRemove.removed": "%1$s eliminado de la lista",
+  "commands.selectium-mod.playerRemove.failed": "%1$s no está en la lista",
+  "commands.selectium-mod.playerRemove.invalid": "UUID no válido",
 
-  "commands.selectium-mod.enableNameInfo.enable": "Información del nombre del jugador mostrada",
-  "commands.selectium-mod.enableNameInfo.disable": "Información del nombre del jugador oculta",
+  "commands.selectium-mod.playerNicknameSet.edited": "El apodo de %1$s se cambió a %2$s",
+  "commands.selectium-mod.playerNicknameSet.removed": "Se eliminó el apodo de %1$s",
+  "commands.selectium-mod.playerNicknameSet.failed": "%1$s no está en la lista",
+  "commands.selectium-mod.playerNicknameSet.invalid": "UUID no válido",
 
-  "commands.selectium-mod.resetList": "Lista de jugadores reiniciada",
+  "commands.selectium-mod.playerClearAll": "Se vació la lista de jugadores",
 
-  "commands.selectium-mod.showHelp.title": "Mod Selectium — Comandos",
-  "commands.selectium-mod.showHelp.listAdd": "Añadir o reemplazar jugador en la lista",
-  "commands.selectium-mod.showHelp.listRemove": "Eliminar jugador de la lista",
-  "commands.selectium-mod.showHelp.nicknameAdd": "Añadir o reemplazar apodo de un jugador en la lista",
-  "commands.selectium-mod.showHelp.nicknameRemove": "Eliminar apodo de un jugador en la lista",
-  "commands.selectium-mod.showHelp.toggleNameInfo": "Activar o desactivar colores de nombre y apodos",
-  "commands.selectium-mod.showHelp.reset": "Restablecer lista a valores predeterminados"
+  "commands.selectium-mod.playerToggleInfo.enable": "Información de nombres de jugadores mostrada",
+  "commands.selectium-mod.playerToggleInfo.disable": "Información de nombres de jugadores oculta",
+
+  "commands.selectium-mod.discordSet.connecting": "Conectando al servidor de Discord...",
+  "commands.selectium-mod.discordSet.disconnecting": "Desconectando del servidor de Discord...",
+  "commands.selectium-mod.discordSet.connected": "Discord conectado",
+  "commands.selectium-mod.discordSet.disconnected": "Discord desconectado",
+  "commands.selectium-mod.discordSet.invalid": "Ya se está conectando a Discord",
+
+  "commands.selectium-mod.showHelp.title": "Selectium Mod — Comandos",
+  "commands.selectium-mod.showHelp.playerAdd": "Agregar jugador a la lista",
+  "commands.selectium-mod.showHelp.playerEdit": "Reemplazar jugador en la lista",
+  "commands.selectium-mod.showHelp.playerRemove": "Eliminar jugador de la lista",
+  "commands.selectium-mod.showHelp.playerNicknameEdit": "Agregar o reemplazar el apodo de un jugador en la lista",
+  "commands.selectium-mod.showHelp.playerNicknameRemove": "Eliminar el apodo de un jugador de la lista",
+  "commands.selectium-mod.showHelp.playerClearAll": "Eliminar todos los jugadores de la lista",
+  "commands.selectium-mod.showHelp.playerToggleInfo": "Activar o desactivar los colores de los nombres y los apodos de los jugadores",
+  "commands.selectium-mod.showHelp.discordLink": "Conectarse al servidor de Discord de Selectium",
+  "commands.selectium-mod.showHelp.discordRelink": "Reconectarse al servidor de Discord de Selectium",
+  "commands.selectium-mod.showHelp.discordUnlink": "Desconectarse del servidor de Discord de Selectium"
 }

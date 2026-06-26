@@ -5,19 +5,18 @@ import net.minecraft.client.Minecraft;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
+import com.google.common.util.concurrent.RateLimiter;
 import org.slf4j.Logger;
 
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.function.BiConsumer;
 
 import net.byws.selectiummod.config.ConfigManager;
 import net.byws.selectiummod.config.ConfigJsonObj;
@@ -29,10 +28,10 @@ public class WebSocketListener implements WebSocket.Listener
     private final Logger LOGGER;
     private final Gson GSON;
 
-    private final Map<String, BiConsumer<ConfigManager, JsonObject>> actionHandlers;
     private volatile WebSocket discord_conn;
     private volatile boolean isConnecting, isDisconnecting;
     private long lastPingMillis;
+    private final RateLimiter rateLimiter;
     private final StringBuilder messageBuffer;
     private final ConcurrentLinkedQueue<Runnable> updateQueue;
 
@@ -43,14 +42,9 @@ public class WebSocketListener implements WebSocket.Listener
         this.isConnecting = false;
         this.isDisconnecting = false;
         this.lastPingMillis = 0;
+        this.rateLimiter = RateLimiter.create(5);
         this.messageBuffer = new StringBuilder();
         this.updateQueue = new ConcurrentLinkedQueue<>();
-
-        this.actionHandlers = new HashMap<>();
-        this.actionHandlers.put("update_list_players", this::handleListUpdate);
-        this.actionHandlers.put("add_list_player", this::handleListAdd);
-        this.actionHandlers.put("edit_list_player", this::handleListEdit);
-        this.actionHandlers.put("remove_list_player", this::handleListRemove);
     }
 
     public static void init(Logger modLogger, Gson gson)
@@ -76,16 +70,11 @@ public class WebSocketListener implements WebSocket.Listener
     public boolean isConnected() { return discord_conn != null; }
 
     @Override
-    public void onOpen(WebSocket websocket)
-    {
-        LOGGER.info("Selectium Mod WebSocket connection established");
-        websocket.request(1);
-    }
+    public void onOpen(WebSocket websocket) { websocket.request(1); }
 
     @Override
     public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason)
     {
-        LOGGER.info("Selectium Mod WebSocket closed with status code {} and reason: {}", statusCode, reason);
         synchronized (this)
         {
             discord_conn = null;
@@ -131,7 +120,6 @@ public class WebSocketListener implements WebSocket.Listener
                 })
                 .exceptionally(ex ->
                 {
-                    LOGGER.error("Selectium Mod failed to connect to WebSocket: {}", ex.getMessage());
                     synchronized (this)
                     {
                         discord_conn = null;
@@ -252,7 +240,6 @@ public class WebSocketListener implements WebSocket.Listener
     public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last)
     {
         String fullMessage = null;
-
         synchronized (this)
         {
             messageBuffer.append(data);
@@ -265,10 +252,24 @@ public class WebSocketListener implements WebSocket.Listener
 
         if (fullMessage != null)
         {
+            if (!rateLimiter.tryAcquire())
+            {
+                LOGGER.warn("Selectium Mod WebSocket exceeded message rate limit. Closing connection.");
+                close();
+                return null;
+            }
+
             try
             {
                 JsonObject message = GSON.fromJson(fullMessage, JsonObject.class);
-                actionHandlers.get(message.get("action").getAsString()).accept(ConfigManager.getInstance(), message);
+
+                switch (message.get("action").getAsString())
+                {
+                    case "update_list_players" -> handleListUpdate(ConfigManager.getInstance(), message);
+                    case "add_list_player" -> handleListAdd(ConfigManager.getInstance(), message);
+                    case "edit_list_player" -> handleListEdit(ConfigManager.getInstance(), message);
+                    case "remove_list_player" -> handleListRemove(ConfigManager.getInstance(), message);
+                }
             }
             catch (Exception e)
             {
