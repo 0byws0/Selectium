@@ -15,7 +15,7 @@ import java.util.UUID;
 
 import net.byws.selectiummod.config.ConfigJsonObj;
 import net.byws.selectiummod.config.ConfigManager;
-import net.byws.selectiummod.discord.WebSocketListener;
+import net.byws.selectiummod.websocket.WebSocketListener;
 
 public class SelectiumCommand
 {
@@ -31,10 +31,7 @@ public class SelectiumCommand
 
     private static String validateName(String commandInput, Collection<String> usernames)
     {
-        for (String username : usernames)
-        {
-            if (username.equalsIgnoreCase(commandInput)) return username;
-        }
+        for (String username : usernames) { if (username.equalsIgnoreCase(commandInput)) return username; }
         return commandInput;
     }
 
@@ -59,8 +56,9 @@ public class SelectiumCommand
             playerEditLiteral.then(ClientCommandManager.literal(category.name())
                     .then(ClientCommandManager.argument("name/UUID", StringArgumentType.word())
                             .suggests(PLAYER_LIST_NAMES)
-                            .executes(ctx ->
-                                    playerEdit(ctx, validateName(StringArgumentType.getString(ctx, "name/UUID"), configManager.getListNames()), category))));
+                            .executes(ctx -> playerEdit(ctx,
+                                    validateName(StringArgumentType.getString(ctx, "name/UUID"), configManager.getListNames()),
+                                    category))));
         }
 
         dispatcher.register(
@@ -78,8 +76,8 @@ public class SelectiumCommand
                                 .then(ClientCommandManager.literal("remove")
                                         .then(ClientCommandManager.argument("name/UUID", StringArgumentType.word())
                                                 .suggests(PLAYER_LIST_NAMES)
-                                                .executes(ctx ->
-                                                        playerRemove(ctx, validateName(StringArgumentType.getString(ctx, "name/UUID"), configManager.getListNames())))))
+                                                .executes(ctx -> playerRemove(ctx,
+                                                        validateName(StringArgumentType.getString(ctx, "name/UUID"), configManager.getListNames())))))
 
                                 .then(ClientCommandManager.literal("nickname")
 
@@ -88,16 +86,17 @@ public class SelectiumCommand
                                                 .then(ClientCommandManager.argument("name/UUID", StringArgumentType.word())
                                                         .suggests(PLAYER_LIST_NAMES)
                                                         .then(ClientCommandManager.argument("nickname", StringArgumentType.word())
-                                                                .executes(ctx ->
-                                                                        playerNicknameSet(ctx, validateName(StringArgumentType.getString(ctx, "name/UUID"), configManager.getListNames()),
-                                                                                StringArgumentType.getString(ctx, "nickname"))))))
+                                                                .executes(ctx -> playerNicknameSet(ctx,
+                                                                        validateName(StringArgumentType.getString(ctx, "name/UUID"), configManager.getListNames()),
+                                                                        StringArgumentType.getString(ctx, "nickname"))))))
 
                                         // /playerNicknameRemove <name/UUID>
                                         .then(ClientCommandManager.literal("remove")
                                                 .then(ClientCommandManager.argument("name/UUID", StringArgumentType.word())
                                                         .suggests(PLAYER_LIST_NAMES)
-                                                        .executes(ctx ->
-                                                                playerNicknameSet(ctx, validateName(StringArgumentType.getString(ctx, "name/UUID"), configManager.getListNames()), ""))))
+                                                        .executes(ctx -> playerNicknameSet(ctx,
+                                                                validateName(StringArgumentType.getString(ctx, "name/UUID"), configManager.getListNames()),
+                                                                ""))))
                                 )
 
                                 .then(ClientCommandManager.literal("clearAll")
@@ -108,10 +107,16 @@ public class SelectiumCommand
                                         .executes(SelectiumCommand::playerToggleInfo))
                         )
 
-                        .then(ClientCommandManager.literal("linkDiscord")
-                                .then(ClientCommandManager.argument("token", StringArgumentType.word())
-                                        .executes(ctx ->
-                                                linkDiscord(ctx, StringArgumentType.getString(ctx, "token")))))
+                        .then(ClientCommandManager.literal("discord")
+                                .then(ClientCommandManager.literal("link")
+                                        .then(ClientCommandManager.argument("token", StringArgumentType.word())
+                                        .executes(ctx -> discordSet(ctx,
+                                                StringArgumentType.getString(ctx, "token")))))
+                                .then(ClientCommandManager.literal("relink")
+                                        .executes(ctx -> discordSet(ctx, null)))
+                                .then(ClientCommandManager.literal("unlink")
+                                        .executes(ctx -> discordSet(ctx, ""))))
+
 
                         // /help  (also default)
                         .then(ClientCommandManager.literal("help")
@@ -237,35 +242,68 @@ public class SelectiumCommand
         return 1;
     }
 
-    private static int linkDiscord(CommandContext<FabricClientCommandSource> ctx, String token)
+    private static int discordSet(CommandContext<FabricClientCommandSource> ctx, String token)
     {
         WebSocketListener webSocketListener = WebSocketListener.getInstance();
 
-        if (webSocketListener.isConnected())
+        if (webSocketListener.isConnecting())
         {
-            chatMessage(ctx, ChatFormatting.RED, "commands.selectium-mod.linkDiscord.connected");
+            chatMessage(ctx, ChatFormatting.RED, "commands.selectium-mod.discordSet.connecting");
+            return 1;
         }
-        else if (webSocketListener.isConnecting())
+        if (webSocketListener.isDisconnecting())
         {
-            chatMessage(ctx, ChatFormatting.RED, "commands.selectium-mod.linkDiscord.attempting");
+            chatMessage(ctx, ChatFormatting.RED, "commands.selectium-mod.discordSet.disconnecting");
+            return 1;
+        }
+
+        if (token != null && token.isEmpty())
+        {
+            if (!webSocketListener.isConnected())
+            {
+                chatMessage(ctx, ChatFormatting.RED, "commands.selectium-mod.discordSet.disconnected");
+            }
+            else
+            {
+                ConfigManager.getInstance().setToken("");
+                chatMessage(ctx, ChatFormatting.WHITE, "commands.selectium-mod.discordSet.disconnecting");
+
+                webSocketListener.close()
+                        .thenAcceptAsync(ws ->
+                        {
+                            chatMessage(ctx, ChatFormatting.WHITE, "commands.selectium-mod.discordSet.disconnected");
+                        }, ctx.getSource().getClient()::execute)
+                        .exceptionallyAsync(ex ->
+                        {
+                            chatMessage(ctx, ChatFormatting.RED, "commands.selectium-mod.discordSet.connected");
+                            return null;
+                        }, ctx.getSource().getClient()::execute);
+            }
         }
         else
         {
-            ConfigManager.getInstance().setToken(token);
+            if (webSocketListener.isConnected())
+            {
+                chatMessage(ctx, ChatFormatting.RED, "commands.selectium-mod.discordSet.connected");
+            }
+            else
+            {
+                if (token != null) ConfigManager.getInstance().setToken(token);
+                chatMessage(ctx, ChatFormatting.WHITE, "commands.selectium-mod.discordSet.connecting");
 
-            chatMessage(ctx, ChatFormatting.WHITE, "commands.selectium-mod.linkDiscord.attempting");
-
-            webSocketListener.connect()
-                    .thenAcceptAsync(ws ->
-                    {
-                        chatMessage(ctx, ChatFormatting.WHITE, "commands.selectium-mod.linkDiscord.success");
-                    }, ctx.getSource().getClient()::execute)
-                    .exceptionallyAsync(ex ->
-                    {
-                        chatMessage(ctx, ChatFormatting.RED, "commands.selectium-mod.linkDiscord.failed");
-                        return null;
-                    }, ctx.getSource().getClient()::execute);
+                webSocketListener.connect()
+                        .thenAcceptAsync(ws ->
+                        {
+                            chatMessage(ctx, ChatFormatting.WHITE, "commands.selectium-mod.discordSet.connected");
+                        }, ctx.getSource().getClient()::execute)
+                        .exceptionallyAsync(ex ->
+                        {
+                            chatMessage(ctx, ChatFormatting.RED, "commands.selectium-mod.discordSet.disconnected");
+                            return null;
+                        }, ctx.getSource().getClient()::execute);
+            }
         }
+
         return 1;
     }
 
@@ -281,7 +319,7 @@ public class SelectiumCommand
                 {"/selectium player nickname remove <name/UUID>", "commands.selectium-mod.showHelp.playerNicknameRemove"},
                 {"/selectium player clearAll", "commands.selectium-mod.showHelp.playerClearAll"},
                 {"/selectium player toggleInfo", "commands.selectium-mod.showHelp.playerToggleInfo"},
-                {"/selectium linkDiscord <token>", "commands.selectium-mod.showHelp.linkDiscord"},
+                {"/selectium discord Link <token>", "commands.selectium-mod.showHelp.discordLink"},
         };
 
         for (String[] cmd : cmds)

@@ -15,20 +15,22 @@ import java.util.UUID;
 
 public class ConfigManager
 {
-    private static volatile ConfigManager INSTANCE;
     private static final Path CONFIG_PATH =
             FabricLoader.getInstance().getConfigDir().resolve("config-selectium-mod.json");
+    private static volatile ConfigManager INSTANCE;
     private final Logger LOGGER;
     private final Gson GSON;
     
     private ConfigJsonObj config;
-    private Map<String, UUID> onlinePlayers;
+    private boolean requiresSave;
+    private final Map<String, UUID> onlinePlayers;
 
     private ConfigManager(Logger modLogger, Gson gson)
     {
         this.LOGGER = modLogger;
         this.GSON = gson;
         this.config = new ConfigJsonObj();
+        this.requiresSave = false;
         this.onlinePlayers = new HashMap<>();
     }
 
@@ -54,11 +56,7 @@ public class ConfigManager
 
     private void load()
     {
-        if (!Files.exists(CONFIG_PATH))
-        {
-            save();
-            return;
-        }
+        if (!Files.exists(CONFIG_PATH)) save();
 
         try
         {
@@ -102,7 +100,6 @@ public class ConfigManager
         var connection = Minecraft.getInstance().getConnection();
         if (connection == null) return;
 
-        boolean requiresSave = false;
         onlinePlayers.clear();
 
         for (var playerInfo : connection.getOnlinePlayers())
@@ -131,6 +128,7 @@ public class ConfigManager
         }
 
         if (requiresSave) save();
+        requiresSave = false;
     }
 
     public boolean addListPlayer(UUID playerUUID, boolean clientSide, ConfigJsonObj.Category type, String nickname)
@@ -138,7 +136,7 @@ public class ConfigManager
         if (playerUUID != null &&
                 config.playerList.putIfAbsent(playerUUID, new ConfigJsonObj.PlayerData(clientSide, type, (nickname == null) ? "" : nickname)) == null)
         {
-            save();
+            requiresSave = true;
             return true;
         }
         return false;
@@ -154,7 +152,7 @@ public class ConfigManager
             if (clientSide != null) player.clientSide = clientSide;
             if (type != null) player.type = type;
             if (nickname != null) player.nickname = nickname;
-            save();
+            requiresSave = true;
             return true;
         }
         return false;
@@ -166,7 +164,7 @@ public class ConfigManager
     {
         if (config.playerList.remove(playerUUID) != null | config.playerNameList.values().remove(playerUUID))
         {
-            save();
+            requiresSave = true;
             return true;
         }
         return false;
@@ -176,18 +174,18 @@ public class ConfigManager
     {
         config.playerList.clear();
         config.playerNameList.clear();
-        save();
+        requiresSave = true;
     }
 
     public void setEnableNameInfo(boolean enable)
     {
         config.enableNameColor = enable;
-        save();
+        requiresSave = true;
     }
 
     public void setToken(String token)
     {
         config.token = token;
-        save();
+        requiresSave = true;
     }
 }

@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import net.byws.selectiummod.command.SelectiumCommand;
 import net.byws.selectiummod.config.ConfigManager;
-import net.byws.selectiummod.discord.WebSocketListener;
+import net.byws.selectiummod.websocket.WebSocketListener;
 
 public class SelectiumMod implements ClientModInitializer
 {
