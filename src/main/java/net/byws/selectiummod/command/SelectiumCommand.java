@@ -48,8 +48,9 @@ public class SelectiumCommand
             playerAddLiteral.then(ClientCommandManager.literal(category.name())
                     .then(ClientCommandManager.argument("name/UUID", StringArgumentType.word())
                             .suggests(ONLINE_PLAYER_NAMES)
-                            .executes(ctx ->
-                                    playerAdd(ctx, validateName(StringArgumentType.getString(ctx, "name/UUID"), configManager.getOnlinePlayers().keySet()), category))));
+                            .executes(ctx -> playerAdd(ctx,
+                                    validateName(StringArgumentType.getString(ctx, "name/UUID"), configManager.getOnlinePlayers().keySet()),
+                                    category))));
         }
         for (ConfigJsonObj.Category category : ConfigJsonObj.Category.values())
         {

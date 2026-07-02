@@ -16,24 +16,23 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 import net.byws.selectiummod.config.ConfigManager;
 import net.byws.selectiummod.config.ConfigJsonObj;
 
 public class WebSocketListener implements WebSocket.Listener
 {
-    private static final int PING_INTERVAL_MS = 60000;
+    private static final String DISCORD_WS_URL = "wss://bywsdomain.xyz/ws";
+    private static final int WS_UPDATE_INTERVAL = 60000;
     private static volatile WebSocketListener INSTANCE;
     private final Logger LOGGER;
     private final Gson GSON;
 
     private volatile WebSocket discord_conn;
     private volatile boolean isConnecting, isDisconnecting;
-    private long lastPingMillis;
+    private long lastPushMillis;
     private final RateLimiter rateLimiter;
     private final StringBuilder messageBuffer;
-    private final ConcurrentLinkedQueue<Runnable> updateQueue;
 
     private WebSocketListener(Logger modLogger, Gson gson)
     {
@@ -41,10 +40,9 @@ public class WebSocketListener implements WebSocket.Listener
         this.GSON = gson;
         this.isConnecting = false;
         this.isDisconnecting = false;
-        this.lastPingMillis = 0;
+        this.lastPushMillis = 0;
         this.rateLimiter = RateLimiter.create(5);
         this.messageBuffer = new StringBuilder();
-        this.updateQueue = new ConcurrentLinkedQueue<>();
     }
 
     public static void init(Logger modLogger, Gson gson)
@@ -100,21 +98,22 @@ public class WebSocketListener implements WebSocket.Listener
     {
         synchronized (this)
         {
-            if (isConnecting || isDisconnecting || discord_conn != null) return CompletableFuture.failedFuture(new IllegalStateException("Already connecting"));
+            if (isConnecting || isDisconnecting || discord_conn != null)
+                return CompletableFuture.failedFuture(new IllegalStateException("Already connecting or connected"));
             isConnecting = true;
+            messageBuffer.setLength(0);
         }
 
         return HttpClient.newHttpClient().newWebSocketBuilder()
-                .header("uuid", "0422ee86-9842-43dd-8fd7-3665aeb87552") // Minecraft.getInstance().getUser().getProfileId().toString()
+                .header("uuid", "0422ee86-9842-43dd-8fd7-3665aeb87552") //Minecraft.getInstance().getUser().getProfileId().toString()
                 .header("token", ConfigManager.getInstance().getToken())
-                .buildAsync(URI.create("ws://localhost:8000/ws"), this)
+                .buildAsync(URI.create(DISCORD_WS_URL), this)
                 .thenApply(ws ->
                 {
                     synchronized (this)
                     {
                         discord_conn = ws;
                         isConnecting = false;
-                        messageBuffer.setLength(0);
                     }
                     return ws;
                 })
@@ -131,24 +130,27 @@ public class WebSocketListener implements WebSocket.Listener
 
     public CompletableFuture<WebSocket> close()
     {
+        WebSocket ws;
         synchronized (this)
         {
-            if (isConnecting || isDisconnecting || discord_conn == null) return CompletableFuture.failedFuture(new IllegalStateException("Not connected"));
+            if (isConnecting || isDisconnecting || discord_conn == null)
+                return CompletableFuture.failedFuture(new IllegalStateException("Not connected"));
             isDisconnecting = true;
+            ws = discord_conn;
         }
-        return discord_conn.sendClose(1000, "Normal closure");
+
+        return ws.sendClose(1000, "Normal closure");
     }
 
     public void update()
     {
-        Runnable nextUpdate = updateQueue.poll();
-        if (nextUpdate != null) nextUpdate.run();
-
+        WebSocket ws = discord_conn;
         long currentMillis = System.currentTimeMillis();
-        if (discord_conn != null && (currentMillis - lastPingMillis) > PING_INTERVAL_MS)
+
+        if (ws != null && (currentMillis - lastPushMillis) > WS_UPDATE_INTERVAL)
         {
-            discord_conn.sendPong(StandardCharsets.UTF_8.encode("heartbeat"));
-            lastPingMillis = currentMillis;
+            ws.sendPong(StandardCharsets.UTF_8.encode(""));
+            lastPushMillis = currentMillis;
         }
     }
 
@@ -156,30 +158,32 @@ public class WebSocketListener implements WebSocket.Listener
     {
         Map<UUID, ConfigJsonObj.PlayerData> serverPlayerList = GSON.fromJson(message.get("payload"),
                 new TypeToken<Map<UUID, ConfigJsonObj.PlayerData>>(){}.getType());
-        var clientPlayerList = Minecraft.getInstance().submit(() -> configManager.getPlayerList()).join();
 
-        for (var playerEntry : clientPlayerList.entrySet())
+        Minecraft.getInstance().execute(() ->
         {
-            UUID playerUUID = playerEntry.getKey();
-            if (!playerEntry.getValue().clientSide && !serverPlayerList.containsKey(playerUUID)) updateQueue.add(() ->
-                    configManager.removeListPlayer(playerUUID));
-        }
+            var clientPlayerList = configManager.getPlayerList();
 
-        serverPlayerList.forEach((playerUUID, updatedPlayer) ->
-        {
-            ConfigJsonObj.PlayerData existingPlayer =  clientPlayerList.get(playerUUID);
-            final boolean clientSide = updatedPlayer.clientSide;
-            final ConfigJsonObj.Category type = updatedPlayer.type;
-            final String nickname = updatedPlayer.nickname;
+            for (var playerEntry : clientPlayerList.entrySet())
+            {
+                UUID playerUUID = playerEntry.getKey();
+                if (!playerEntry.getValue().clientSide && !serverPlayerList.containsKey(playerUUID))
+                {
+                    configManager.removeListPlayer(playerUUID);
+                }
+            }
 
-            if (existingPlayer == null)
+            serverPlayerList.forEach((playerUUID, updatedPlayer) ->
             {
-                updateQueue.add(() -> configManager.addListPlayer(playerUUID, clientSide, type, nickname));
-            }
-            else if (!existingPlayer.clientSide)
-            {
-                updateQueue.add(() -> configManager.editListPlayer(playerUUID, clientSide, type, nickname));
-            }
+                ConfigJsonObj.PlayerData existingPlayer = clientPlayerList.get(playerUUID);
+                if (existingPlayer == null)
+                {
+                    configManager.addListPlayer(playerUUID, updatedPlayer.clientSide, updatedPlayer.type, updatedPlayer.nickname);
+                }
+                else if (!existingPlayer.clientSide)
+                {
+                    configManager.editListPlayer(playerUUID, updatedPlayer.clientSide, updatedPlayer.type, updatedPlayer.nickname);
+                }
+            });
         });
     }
 
@@ -187,15 +191,14 @@ public class WebSocketListener implements WebSocket.Listener
     {
         Map<UUID, ConfigJsonObj.PlayerData> serverPlayerList = GSON.fromJson(message.get("payload"),
                 new TypeToken<Map<UUID, ConfigJsonObj.PlayerData>>(){}.getType());
-        var clientPlayerList = Minecraft.getInstance().submit(() -> configManager.getPlayerList()).join();
 
-        serverPlayerList.forEach((playerUUID, updatedPlayer) ->
+        Minecraft.getInstance().execute(() ->
         {
-            final boolean clientSide = updatedPlayer.clientSide;
-            final ConfigJsonObj.Category type = updatedPlayer.type;
-            final String nickname = updatedPlayer.nickname;
-
-            if (clientPlayerList.get(playerUUID) == null) updateQueue.add(() -> configManager.addListPlayer(playerUUID, clientSide, type, nickname));
+            var clientPlayerList = configManager.getPlayerList();
+            serverPlayerList.forEach((playerUUID, updatedPlayer) ->
+            {
+                if (clientPlayerList.get(playerUUID) == null) configManager.addListPlayer(playerUUID, updatedPlayer.clientSide, updatedPlayer.type, updatedPlayer.nickname);
+            });
         });
     }
 
@@ -203,23 +206,22 @@ public class WebSocketListener implements WebSocket.Listener
     {
         Map<UUID, ConfigJsonObj.PlayerData> serverPlayerList = GSON.fromJson(message.get("payload"),
                 new TypeToken<Map<UUID, ConfigJsonObj.PlayerData>>(){}.getType());
-        var clientPlayerList = Minecraft.getInstance().submit(() -> configManager.getPlayerList()).join();
 
-        serverPlayerList.forEach((playerUUID, updatedPlayer) ->
+        Minecraft.getInstance().execute(() ->
         {
-            ConfigJsonObj.PlayerData existingPlayer =  clientPlayerList.get(playerUUID);
-            final boolean clientSide = updatedPlayer.clientSide;
-            final ConfigJsonObj.Category type = updatedPlayer.type;
-            final String nickname = updatedPlayer.nickname;
-
-            if (existingPlayer == null)
+            var clientPlayerList = configManager.getPlayerList();
+            serverPlayerList.forEach((playerUUID, updatedPlayer) ->
             {
-                updateQueue.add(() -> configManager.addListPlayer(playerUUID, clientSide, type, nickname));
-            }
-            else if (!existingPlayer.clientSide)
-            {
-                updateQueue.add(() -> configManager.editListPlayer(playerUUID, clientSide, type, nickname));
-            }
+                ConfigJsonObj.PlayerData existingPlayer = clientPlayerList.get(playerUUID);
+                if (existingPlayer == null)
+                {
+                    configManager.addListPlayer(playerUUID, updatedPlayer.clientSide, updatedPlayer.type, updatedPlayer.nickname);
+                }
+                else if (!existingPlayer.clientSide)
+                {
+                    configManager.editListPlayer(playerUUID, updatedPlayer.clientSide, updatedPlayer.type, updatedPlayer.nickname);
+                }
+            });
         });
     }
 
@@ -227,12 +229,15 @@ public class WebSocketListener implements WebSocket.Listener
     {
         Map<UUID, ConfigJsonObj.PlayerData> serverPlayerList = GSON.fromJson(message.get("payload"),
                 new TypeToken<Map<UUID, ConfigJsonObj.PlayerData>>(){}.getType());
-        var clientPlayerList = Minecraft.getInstance().submit(() -> configManager.getPlayerList()).join();
 
-        serverPlayerList.forEach((playerUUID, updatedPlayer) ->
+        Minecraft.getInstance().execute(() ->
         {
-            ConfigJsonObj.PlayerData existingPlayer =  clientPlayerList.get(playerUUID);
-            if (existingPlayer != null && !existingPlayer.clientSide) updateQueue.add(() -> configManager.removeListPlayer(playerUUID));
+            var clientPlayerList = configManager.getPlayerList();
+            serverPlayerList.forEach((playerUUID, updatedPlayer) ->
+            {
+                ConfigJsonObj.PlayerData existingPlayer = clientPlayerList.get(playerUUID);
+                if (existingPlayer != null && !existingPlayer.clientSide) configManager.removeListPlayer(playerUUID);
+            });
         });
     }
 
@@ -280,4 +285,4 @@ public class WebSocketListener implements WebSocket.Listener
         webSocket.request(1);
         return null;
     }
-}
+} 

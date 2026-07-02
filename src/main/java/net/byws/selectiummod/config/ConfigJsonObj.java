@@ -41,6 +41,7 @@ public class ConfigJsonObj
     }
 
     public String token = "";
+    public HashMap<UUID, PlayerData> playerCatList = null; // remove next update
     public HashMap<UUID, PlayerData> playerList = new HashMap<>();
     public HashMap<String, UUID> playerNameList = new HashMap<>();
     public boolean enableNameColor = true;

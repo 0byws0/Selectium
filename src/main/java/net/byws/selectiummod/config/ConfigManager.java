@@ -62,6 +62,12 @@ public class ConfigManager
         {
             ConfigJsonObj loaded = GSON.fromJson(Files.readString(CONFIG_PATH), ConfigJsonObj.class);
             if (loaded != null) config = loaded;
+
+            if (config.playerCatList != null) // remove next update
+            {
+                config.playerList = config.playerCatList;
+                config.playerCatList = null;
+            }
         }
         catch (IOException e)
         {
