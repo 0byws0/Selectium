@@ -1,4 +1,4 @@
 .idea/
 /.env
-discord.log
+logs/
 data/

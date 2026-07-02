@@ -3,9 +3,6 @@ from discord.ext import commands
 
 from src.config import GUILD_ID
 
-import sys
-print(sys.path)
-
 class SelectiumManager(commands.Bot):
     def __init__(self, db, conn_manager):
         intents = discord.Intents.default()

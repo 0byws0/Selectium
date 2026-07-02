@@ -111,7 +111,6 @@ class DatabaseManager:
 
         rows = await cur.fetchall()
         await self.conn.commit()
-
         return [Player(UUID(bytes=row[0]), row[1], Player.Category[row[2]], row[3], row[4], row[5], row[6]) for row in rows]
 
     # async def get_field(self, field: Fields):
@@ -133,7 +132,8 @@ class DatabaseManager:
                         f"ORDER BY {self.Fields.UUID.value}",
                         {"input": field_input})
 
-        return [Player(UUID(bytes=row[0]), row[1], Player.Category[row[2]], row[3], row[4], row[5], row[6]) for row in await cur.fetchall()]
+        rows = await cur.fetchall()
+        return [Player(UUID(bytes=row[0]), row[1], Player.Category[row[2]], row[3], row[4], row[5], row[6]) for row in rows]
 
     async def remove_player(self, field: Fields, field_input):
         if not isinstance(field, self.Fields): raise TypeError("field is not a valid Fields enum")
@@ -169,4 +169,6 @@ class DatabaseManager:
         cur = await self.conn.execute("SELECT * FROM lists "
                                       "WHERE server_id=:server_id",
                                       {"server_id": server_id})
-        return row[1:] if (row := await cur.fetchone()) else None
+
+        rows = await cur.fetchone()
+        return row[1:] if (row := rows) else None

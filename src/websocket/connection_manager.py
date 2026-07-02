@@ -1,5 +1,4 @@
-from fastapi import WebSocket
-import asyncio
+from fastapi import WebSocket, status
 from enum import Enum
 import json
 
@@ -20,34 +19,37 @@ class ConnectionManager:
                         return {str(player_data.mc_uuid):
                                     {"shared":True,
                                      "type":player_data.cat.name,
-                                     "nickname":player_data.alias}
+                                     "nickname":player_data.alias} # player_data.alias or ""
                                 for player_data in payload_data}
 
             except (ValueError, TypeError, KeyError, AttributeError):
                 return None
 
     def __init__(self, db):
-        self.active_connections: list[WebSocket] = []
+        self.active_connections: dict[str, WebSocket] = {}
         self.db = db
 
-    async def connect(self, websocket: WebSocket):
+    async def connect(self, conn_uuid: str, websocket: WebSocket):
+        await self.disconnect(conn_uuid)
         await websocket.accept()
-        self.active_connections.append(websocket)
+        self.active_connections[conn_uuid] = websocket
 
-    async def disconnect(self, websocket: WebSocket):
-        if websocket in self.active_connections: self.active_connections.remove(websocket)
-
-    async def broadcast(self, action: Actions, payload_data, websocket: WebSocket = None):
-        message = json.dumps({"action":action.value, "payload":action.convert(payload_data)}, separators=(",", ":"))
-
-        async def send_message(conn):
+    async def disconnect(self, conn_uuid: str):
+        if conn := self.active_connections.pop(conn_uuid, None):
             try:
-                await conn.send_text(message)
+                await conn.close(status.WS_1000_NORMAL_CLOSURE)
             except Exception:
-                await self.disconnect(conn)
+                pass
 
-        if websocket_list := (self.active_connections.copy() if websocket is None else [websocket]):
-            await asyncio.gather(*(send_message(websocket) for websocket in websocket_list), return_exceptions=True)
+    async def broadcast(self, action: Actions, payload_data, conn_uuid: str = None):
+        message = json.dumps({"action":action.value, "payload":action.convert(payload_data)}, separators=(",", ":"))
+        conn_snapshot = [conn_uuid] if conn_uuid else list(self.active_connections.keys())
 
-    async def init_broadcast(self, websocket: WebSocket):
-        await self.broadcast(self.Actions.LIST_UPDATE, await self.db.get_player(), websocket)
+        for conn_uuid in conn_snapshot:
+            try:
+                if conn := self.active_connections.get(conn_uuid): await conn.send_text(message)
+            except Exception:
+                await self.disconnect(conn_uuid)
+
+    async def init_broadcast(self, conn_uuid: str):
+        await self.broadcast(self.Actions.LIST_UPDATE, await self.db.get_player(), conn_uuid)

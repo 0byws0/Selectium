@@ -63,8 +63,10 @@ class PlayerList(commands.Cog):
                 await self.bot.conn_manager.broadcast(ConnectionManager.Actions.LIST_ADD, player_data)
             else:
                 await interaction.followup.send(f"Player `{player_data.mc_name}` already in database")
-        except ValueError:
-            await interaction.followup.send(f"Failed to add player {name_or_uuid}")
+        except Exception as e: # ValueError
+            print(e)
+
+            await interaction.followup.send(f"Failed to add player `{name_or_uuid}`")
 
     @app_commands.command(name="player_edit")
     @app_commands.guilds(discord.Object(GUILD_ID))
@@ -84,7 +86,7 @@ class PlayerList(commands.Cog):
                 await interaction.followup.send(f"Player(s) {' '.join([f'`{player_data.mc_name}`' for player_data in player_data_list])} updated")
                 if category is not None or alt is not None: await self.bot.conn_manager.broadcast(ConnectionManager.Actions.LIST_EDIT, player_data_list)
             else:
-                await interaction.followup.send(f"{field.name.capitalize()} {field_input} not found in database")
+                await interaction.followup.send(f"{field.name.capitalize()} `{field_input}` not found in database")
         else:
             await interaction.followup.send("Nothing provided to update")
 
@@ -96,7 +98,7 @@ class PlayerList(commands.Cog):
         if player_data_list := await self.bot.db.get_player(field, field_input):
             await Paginator.Simple().start(interaction, pages=[self.player_info_embed(player_data) for player_data in player_data_list])
         else:
-            await interaction.followup.send(f"{field.name.capitalize()} {field_input} not found in database")
+            await interaction.followup.send(f"{field.name.capitalize()} `{field_input}` not found in database")
 
     @app_commands.command(name="player_remove")
     @app_commands.guilds(discord.Object(GUILD_ID))
@@ -107,7 +109,7 @@ class PlayerList(commands.Cog):
             await interaction.followup.send(f"Player(s) {' '.join([f'`{player_data.mc_name}`' for player_data in player_data_list])} removed")
             await self.bot.conn_manager.broadcast(ConnectionManager.Actions.LIST_REMOVE, player_data_list)
         else:
-            await interaction.followup.send(f"{field.name.capitalize()} {field_input} not found database")
+            await interaction.followup.send(f"{field.name.capitalize()} `{field_input}` not found database")
 
     # @player_edit.autocomplete("field_input")
     # @player_info.autocomplete("field_input")
@@ -140,6 +142,7 @@ class PlayerList(commands.Cog):
 
     async def update_player_data(self, player_data):
         await player_data.update()
+        upd_params = {DatabaseManager.Fields.USERNAME.value:player_data.mc_name}
 
         if player_data.token_hash is None and player_data.dc_id is not None:
             guild = self.bot.get_guild(GUILD_ID)
@@ -150,13 +153,13 @@ class PlayerList(commands.Cog):
                     token = secrets.token_hex(32)
 
                     await dc_member.send(embed=self.token_embed(token))
-                    await self.bot.db.update_player(DatabaseManager.Fields.UUID,
-                                                    player_data.mc_uuid,
-                                                    **{DatabaseManager.Fields.TOKEN.value:token})
+                    upd_params[DatabaseManager.Fields.TOKEN.value] = token
             except (discord.NotFound, discord.Forbidden):
                 pass
 
-    @tasks.loop(minutes=1)
+        await self.bot.db.update_player(DatabaseManager.Fields.UUID, player_data.mc_uuid, **upd_params)
+
+    @tasks.loop(minutes=30)
     async def update(self):
         players = await self.bot.db.get_player()
         upd_count = -next((i for i, p in enumerate(players) if p.mc_uuid == self.upd_last_uuid), 0)
@@ -168,7 +171,6 @@ class PlayerList(commands.Cog):
                     self.upd_last_uuid = player_data.mc_uuid
                 elif upd_count >= 0:
                     await self.update_player_data(player_data)
-                    await self.bot.db.update_player(DatabaseManager.Fields.UUID, player_data.mc_uuid, mc_name=player_data.mc_name)
                 upd_count += 1
 
             await self.bot.get_cog("Announcements").append_list_player(player_data)

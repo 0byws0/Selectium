@@ -7,7 +7,7 @@ class MojangAPI:
 
     @classmethod
     async def connect(cls):
-        cls.session = aiohttp.ClientSession()
+        cls.session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(5.0))
 
     @classmethod
     async def close(cls):
@@ -19,7 +19,10 @@ class MojangAPI:
             async with cls.session.get(
                     f"https://api.mojang.com/users/profiles/minecraft/{username_str}") as response:
                 if response.status == 200: return (await response.json())["id"]
-        except aiohttp.ClientError:
+
+                else: print(response.status)
+        except Exception as e: # aiohttp.ClientError
+            print(e)
             pass
         return None
 
@@ -30,7 +33,10 @@ class MojangAPI:
             async with cls.session.get(
                     f"https://sessionserver.mojang.com/session/minecraft/profile/{uuid_str}") as response:
                 if response.status == 200: return (await response.json())["name"]
-        except aiohttp.ClientError:
+
+                else: print(response.status)
+        except Exception as e: # aiohttp.ClientError
+            print(e)
             pass
         return None
 
