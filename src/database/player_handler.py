@@ -19,10 +19,7 @@ class MojangAPI:
             async with cls.session.get(
                     f"https://api.mojang.com/users/profiles/minecraft/{username_str}") as response:
                 if response.status == 200: return (await response.json())["id"]
-
-                else: print(response.status)
-        except Exception as e: # aiohttp.ClientError
-            print(e)
+        except aiohttp.ClientError:
             pass
         return None
 
@@ -33,10 +30,7 @@ class MojangAPI:
             async with cls.session.get(
                     f"https://sessionserver.mojang.com/session/minecraft/profile/{uuid_str}") as response:
                 if response.status == 200: return (await response.json())["name"]
-
-                else: print(response.status)
-        except Exception as e: # aiohttp.ClientError
-            print(e)
+        except aiohttp.ClientError:
             pass
         return None
 

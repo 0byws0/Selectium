@@ -63,9 +63,7 @@ class PlayerList(commands.Cog):
                 await self.bot.conn_manager.broadcast(ConnectionManager.Actions.LIST_ADD, player_data)
             else:
                 await interaction.followup.send(f"Player `{player_data.mc_name}` already in database")
-        except Exception as e: # ValueError
-            print(e)
-
+        except ValueError:
             await interaction.followup.send(f"Failed to add player `{name_or_uuid}`")
 
     @app_commands.command(name="player_edit")
@@ -111,39 +109,48 @@ class PlayerList(commands.Cog):
         else:
             await interaction.followup.send(f"{field.name.capitalize()} `{field_input}` not found database")
 
-    # @player_edit.autocomplete("field_input")
-    # @player_info.autocomplete("field_input")
-    # @player_remove.autocomplete("field_input")
-    # async def field_input_autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
-    #     if not current: return [app_commands.Choice(name="Type to search fields...", value="")]
-    #
-    #     try:
-    #         field_data = await self.bot.db.get_field(DatabaseManager.Fields(interaction.namespace.field))
-    #     except Exception:
-    #         return []
-    #
-    #     current = current.lower()
-    #     filtered_choice = []
-    #
-    #     for choice in field_data:
-    #         choice = str(choice)
-    #         if current in choice.lower():
-    #             filtered_choice.append(app_commands.Choice(name=choice, value=choice))
-    #         if len(filtered_choice) >= 25:
-    #             break
-    #
-    #     return filtered_choice
-    #
-    # @player_edit.autocomplete("clan")
-    # async def clan_autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
-    #     if not current or current == "-" or current == "- (remove)": choices = [app_commands.Choice(name="- (remove)", value="-")]
-    #     choices += await self.field_input_autocomplete(interaction, current)
-    #     return choices
+    async def discord_autocomplete(self, field, current):
+        if not field or not current: return []
 
-    async def update_player_data(self, player_data):
-        await player_data.update()
-        upd_params = {DatabaseManager.Fields.USERNAME.value:player_data.mc_name}
+        field_data = await self.bot.db.get_field(field)
+        filtered_choice = []
+        cur_input = current.lower()
 
+        for choice in field_data:
+            choice = str(choice)
+            if cur_input in choice.lower():
+                filtered_choice.append(app_commands.Choice(name=choice, value=choice))
+            if len(filtered_choice) >= 25:
+                break
+
+        return filtered_choice
+
+    @player_edit.autocomplete("field_input")
+    @player_info.autocomplete("field_input")
+    @player_remove.autocomplete("field_input")
+    async def field_input_autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+        return await self.discord_autocomplete(DatabaseManager.Fields(interaction.namespace.field), current)
+
+    @player_edit.autocomplete("alt")
+    async def edit_alt_autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+        return ([app_commands.Choice(name="- (remove)", value="-")] if not current or current in ["-", "- (remove)"] else []
+                + await self.discord_autocomplete(DatabaseManager.Fields.ALT, current))
+
+    @player_edit.autocomplete("clan")
+    async def edit_clan_autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+        return ([app_commands.Choice(name="- (remove)", value="-")] if not current or current in ["-", "- (remove)"] else []
+                + await self.discord_autocomplete(DatabaseManager.Fields.CLAN, current))
+
+    @player_edit.autocomplete("discord_id")
+    async def edit_discord_id_autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+        return ([app_commands.Choice(name="- (remove)", value="-")] if not current or current in ["-", "- (remove)"] else []
+                + await self.discord_autocomplete(DatabaseManager.Fields.DISCORD, current))
+
+    @player_edit.autocomplete("token")
+    async def edit_token_autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+        return [app_commands.Choice(name="- (remove)", value="-")] if not current or current in ["-", "- (remove)"] else []
+
+    async def update_player_discord(self, player_data):
         if player_data.token_hash is None and player_data.dc_id is not None:
             guild = self.bot.get_guild(GUILD_ID)
             try:
@@ -153,25 +160,32 @@ class PlayerList(commands.Cog):
                     token = secrets.token_hex(32)
 
                     await dc_member.send(embed=self.token_embed(token))
-                    upd_params[DatabaseManager.Fields.TOKEN.value] = token
-            except (discord.NotFound, discord.Forbidden):
+                    return {DatabaseManager.Fields.TOKEN.value:token}
+            except discord.HTTPException:
                 pass
+        return {}
 
-        await self.bot.db.update_player(DatabaseManager.Fields.UUID, player_data.mc_uuid, **upd_params)
-
-    @tasks.loop(minutes=30)
+    @tasks.loop(minutes=1)
     async def update(self):
         players = await self.bot.db.get_player()
         upd_count = -next((i for i, p in enumerate(players) if p.mc_uuid == self.upd_last_uuid), 0)
         self.upd_last_uuid = None
 
         for player_data in players:
+            upd_params = {}
+
             if self.upd_last_uuid is None:
-                if upd_count >= 150:
+                if upd_count >= 50:
                     self.upd_last_uuid = player_data.mc_uuid
                 elif upd_count >= 0:
-                    await self.update_player_data(player_data)
+                    await player_data.update()
+                    upd_params[DatabaseManager.Fields.USERNAME.value] = player_data.mc_name
                 upd_count += 1
+
+            upd_params.update(await self.update_player_discord(player_data))
+
+            if upd_params:
+                await self.bot.db.update_player(DatabaseManager.Fields.UUID, player_data.mc_uuid, **upd_params)
 
             await self.bot.get_cog("Announcements").append_list_player(player_data)
         await self.bot.get_cog("Announcements").push_list_update()

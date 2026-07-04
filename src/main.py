@@ -38,5 +38,5 @@ async def lifespan(app):
 app = FastAPI(lifespan=lifespan)
 app.include_router(ws_router)
 
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False, log_config=None)
+if __name__ == "__main__": # host="0.0.0.0"
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=False, log_config=None, forwarded_allow_ips="127.0.0.1")

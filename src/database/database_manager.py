@@ -21,25 +21,37 @@ class DatabaseManager:
                 match self:
                     case self.UUID:
                         return field_input.bytes if isinstance(field_input, UUID) else UUID(field_input).bytes
-
                     case self.USERNAME | self.CLAN | self.ALT:
                         return str(field_input)
-
                     case self.CATEGORY:
                         try:
                             return Player.Category[field_input].name
                         except KeyError:
                             return Player.Category(field_input).name
-
                     case self.DISCORD:
                         return int(field_input)
-
                     case self.TOKEN:
                         return field_input if (isinstance(field_input, bytes) and len(field_input) == 32) else \
                             (hashlib.sha256(field_input.encode("utf-8") if isinstance(field_input, str) else field_input).digest())
-
             except (ValueError, TypeError, KeyError, AttributeError):
                 return None
+
+        # def deconvert(self, field_input):
+        #     if field_input is None: return None
+        #     try:
+        #         match self:
+        #             case self.UUID:
+        #                 return UUID(bytes=field_input) if isinstance(field_input, bytes) else UUID(field_input)
+        #             case self.USERNAME | self.CLAN | self.ALT:
+        #                 return str(field_input)
+        #             case self.CATEGORY:
+        #                 return Player.Category[field_input]
+        #             case self.DISCORD:
+        #                 return int(field_input)
+        #             case self.TOKEN:
+        #                 return field_input
+        #     except (ValueError, TypeError, KeyError, AttributeError):
+        #         return None
 
         def collation(self):
             return "COLLATE NOCASE" if self in (self.USERNAME, self.ALT, self.CLAN) else ""
@@ -113,15 +125,16 @@ class DatabaseManager:
         await self.conn.commit()
         return [Player(UUID(bytes=row[0]), row[1], Player.Category[row[2]], row[3], row[4], row[5], row[6]) for row in rows]
 
-    # async def get_field(self, field: Fields):
-    #     if not isinstance(field, self.Fields): raise TypeError("field is not a valid Fields enum")
-    #     cur = await self.conn.execute(f"SELECT DISTINCT {field.value} from players "
-    #                                   f"WHERE {field.value} IS NOT NULL")
-    #     return [row[0] for row in await cur.fetchall()]
+    async def get_field(self, field: Fields):
+        if not isinstance(field, self.Fields): raise TypeError("field is not a valid Fields enum")
+        cur = await self.conn.execute(f"SELECT DISTINCT {field.value} from players "
+                                      f"WHERE {field.value} IS NOT NULL")
+        rows = await cur.fetchall()
+        return [(UUID(bytes=row[0]) if (field == self.Fields.UUID) else row[0]) for row in rows]
 
     async def get_player(self, field: Fields = None, field_input = None):
         if field is None:
-            cur = await self.conn.execute(f"SELECT * FROM players ORDER BY {self.Fields.UUID.value}")
+            cur = await self.conn.execute(f"SELECT DISTINCT * FROM players ORDER BY {self.Fields.UUID.value}")
         else:
             if not isinstance(field, self.Fields): raise TypeError("field is not a valid Fields enum")
 
