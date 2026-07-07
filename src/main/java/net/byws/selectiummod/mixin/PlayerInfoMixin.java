@@ -30,8 +30,7 @@ public abstract class PlayerInfoMixin
         if (playerData != null)
         {
             if (!playerName.equals(playerData.nickname) && !playerData.nickname.isEmpty()) mutableText.append(" (" + playerData.nickname + ")");
-            mutableText.withStyle((playerData.clientSide) ? playerData.type.getClientColorFormatting()
-                    : playerData.type.getServerColorFormatting());
+            mutableText.withStyle((playerData.clientSide) ? playerData.type.getClientColorFormatting() : playerData.type.getServerColorFormatting());
         }
 
         cir.setReturnValue(mutableText);

@@ -23,7 +23,7 @@ import net.byws.selectiummod.config.ConfigJsonObj;
 public class WebSocketListener implements WebSocket.Listener
 {
     private static final String DISCORD_WS_URL = "wss://bywsdomain.xyz/ws";
-    private static final int WS_UPDATE_INTERVAL = 60000;
+    private static final int WS_UPDATE_INTERVAL = 50000;
     private static volatile WebSocketListener INSTANCE;
     private final Logger LOGGER;
     private final Gson GSON;
@@ -31,6 +31,7 @@ public class WebSocketListener implements WebSocket.Listener
     private volatile WebSocket discord_conn;
     private volatile boolean isConnecting, isDisconnecting;
     private long lastPushMillis;
+    private final HttpClient httpClient;
     private final RateLimiter rateLimiter;
     private final StringBuilder messageBuffer;
 
@@ -41,6 +42,7 @@ public class WebSocketListener implements WebSocket.Listener
         this.isConnecting = false;
         this.isDisconnecting = false;
         this.lastPushMillis = 0;
+        this.httpClient = HttpClient.newHttpClient();
         this.rateLimiter = RateLimiter.create(5);
         this.messageBuffer = new StringBuilder();
     }
@@ -98,14 +100,13 @@ public class WebSocketListener implements WebSocket.Listener
     {
         synchronized (this)
         {
-            if (isConnecting || isDisconnecting || discord_conn != null)
-                return CompletableFuture.failedFuture(new IllegalStateException("Already connecting or connected"));
+            if (isConnecting || isDisconnecting || discord_conn != null) return CompletableFuture.failedFuture(new IllegalStateException("Already connecting or connected"));
             isConnecting = true;
             messageBuffer.setLength(0);
         }
 
-        return HttpClient.newHttpClient().newWebSocketBuilder()
-                .header("uuid", "0422ee86-9842-43dd-8fd7-3665aeb87552") //Minecraft.getInstance().getUser().getProfileId().toString()
+        return httpClient.newWebSocketBuilder()
+                .header("uuid", Minecraft.getInstance().getUser().getProfileId().toString())
                 .header("token", ConfigManager.getInstance().getToken())
                 .buildAsync(URI.create(DISCORD_WS_URL), this)
                 .thenApply(ws ->
@@ -133,8 +134,7 @@ public class WebSocketListener implements WebSocket.Listener
         WebSocket ws;
         synchronized (this)
         {
-            if (isConnecting || isDisconnecting || discord_conn == null)
-                return CompletableFuture.failedFuture(new IllegalStateException("Not connected"));
+            if (isConnecting || isDisconnecting || discord_conn == null) return CompletableFuture.failedFuture(new IllegalStateException("Not connected"));
             isDisconnecting = true;
             ws = discord_conn;
         }
@@ -142,7 +142,7 @@ public class WebSocketListener implements WebSocket.Listener
         return ws.sendClose(1000, "Normal closure");
     }
 
-    public void update()
+    public void updateWebsocket()
     {
         WebSocket ws = discord_conn;
         long currentMillis = System.currentTimeMillis();
@@ -154,7 +154,7 @@ public class WebSocketListener implements WebSocket.Listener
         }
     }
 
-    private void handleListUpdate(ConfigManager configManager, JsonObject message)
+    private void handleUpsert(ConfigManager configManager, JsonObject message, boolean purgeMissing)
     {
         Map<UUID, ConfigJsonObj.PlayerData> serverPlayerList = GSON.fromJson(message.get("payload"),
                 new TypeToken<Map<UUID, ConfigJsonObj.PlayerData>>(){}.getType());
@@ -163,56 +163,19 @@ public class WebSocketListener implements WebSocket.Listener
         {
             var clientPlayerList = configManager.getPlayerList();
 
-            for (var playerEntry : clientPlayerList.entrySet())
+            if (purgeMissing)
             {
-                UUID playerUUID = playerEntry.getKey();
-                if (!playerEntry.getValue().clientSide && !serverPlayerList.containsKey(playerUUID))
+                for (var playerEntry : clientPlayerList.entrySet())
                 {
-                    configManager.removeListPlayer(playerUUID);
+                    UUID playerUUID = playerEntry.getKey();
+                    if (!playerEntry.getValue().clientSide && !serverPlayerList.containsKey(playerUUID)) configManager.removeListPlayer(playerUUID);
                 }
             }
 
             serverPlayerList.forEach((playerUUID, updatedPlayer) ->
             {
                 ConfigJsonObj.PlayerData existingPlayer = clientPlayerList.get(playerUUID);
-                if (existingPlayer == null)
-                {
-                    configManager.addListPlayer(playerUUID, updatedPlayer.clientSide, updatedPlayer.type, updatedPlayer.nickname);
-                }
-                else if (!existingPlayer.clientSide)
-                {
-                    configManager.editListPlayer(playerUUID, updatedPlayer.clientSide, updatedPlayer.type, updatedPlayer.nickname);
-                }
-            });
-        });
-    }
 
-    private void handleListAdd(ConfigManager configManager, JsonObject message)
-    {
-        Map<UUID, ConfigJsonObj.PlayerData> serverPlayerList = GSON.fromJson(message.get("payload"),
-                new TypeToken<Map<UUID, ConfigJsonObj.PlayerData>>(){}.getType());
-
-        Minecraft.getInstance().execute(() ->
-        {
-            var clientPlayerList = configManager.getPlayerList();
-            serverPlayerList.forEach((playerUUID, updatedPlayer) ->
-            {
-                if (clientPlayerList.get(playerUUID) == null) configManager.addListPlayer(playerUUID, updatedPlayer.clientSide, updatedPlayer.type, updatedPlayer.nickname);
-            });
-        });
-    }
-
-    private void handleListEdit(ConfigManager configManager, JsonObject message)
-    {
-        Map<UUID, ConfigJsonObj.PlayerData> serverPlayerList = GSON.fromJson(message.get("payload"),
-                new TypeToken<Map<UUID, ConfigJsonObj.PlayerData>>(){}.getType());
-
-        Minecraft.getInstance().execute(() ->
-        {
-            var clientPlayerList = configManager.getPlayerList();
-            serverPlayerList.forEach((playerUUID, updatedPlayer) ->
-            {
-                ConfigJsonObj.PlayerData existingPlayer = clientPlayerList.get(playerUUID);
                 if (existingPlayer == null)
                 {
                     configManager.addListPlayer(playerUUID, updatedPlayer.clientSide, updatedPlayer.type, updatedPlayer.nickname);
@@ -233,6 +196,7 @@ public class WebSocketListener implements WebSocket.Listener
         Minecraft.getInstance().execute(() ->
         {
             var clientPlayerList = configManager.getPlayerList();
+
             serverPlayerList.forEach((playerUUID, updatedPlayer) ->
             {
                 ConfigJsonObj.PlayerData existingPlayer = clientPlayerList.get(playerUUID);
@@ -247,6 +211,13 @@ public class WebSocketListener implements WebSocket.Listener
         String fullMessage = null;
         synchronized (this)
         {
+            if (messageBuffer.length() + data.length() > 500000)
+            {
+                LOGGER.warn("Selectium Mod WebSocket exceeded message size. Closing connection.");
+                close();
+                return null;
+            }
+
             messageBuffer.append(data);
             if (last)
             {
@@ -270,9 +241,8 @@ public class WebSocketListener implements WebSocket.Listener
 
                 switch (message.get("action").getAsString())
                 {
-                    case "update_list_players" -> handleListUpdate(ConfigManager.getInstance(), message);
-                    case "add_list_player" -> handleListAdd(ConfigManager.getInstance(), message);
-                    case "edit_list_player" -> handleListEdit(ConfigManager.getInstance(), message);
+                    case "update_list_players" -> handleUpsert(ConfigManager.getInstance(), message, true);
+                    case "add_list_player", "edit_list_player" -> handleUpsert(ConfigManager.getInstance(), message, false);
                     case "remove_list_player" -> handleListRemove(ConfigManager.getInstance(), message);
                 }
             }
