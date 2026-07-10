@@ -31,8 +31,8 @@ class ConnectionManager:
 
     async def connect(self, conn_uuid: str, websocket: WebSocket):
         await self.disconnect(conn_uuid)
-        await websocket.accept()
         self.active_connections[conn_uuid] = websocket
+        await websocket.accept()
 
     async def disconnect(self, conn_uuid: str):
         if conn := self.active_connections.pop(conn_uuid, None):

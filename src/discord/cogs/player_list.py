@@ -5,7 +5,7 @@ import Paginator
 from uuid import UUID
 import secrets
 
-from src.config import GUILD_ID, ACCESS_ROLE_ID
+from src.config import GUILD_ID, MOD_ROLE_IDS, BOT_ROLE_IDS
 from src.database.database_manager import DatabaseManager
 from src.websocket.connection_manager import ConnectionManager
 from src.database.player_handler import Player
@@ -35,7 +35,9 @@ class PlayerList(commands.Cog):
 
     @staticmethod
     def token_embed(token: str) -> discord.Embed:
-        info_embed = discord.Embed(title="Selectium Mod", description="Placeholder") # add description
+        info_embed = discord.Embed(title="Selectium Mod", description=
+        "🇺🇸:\n If you have a previous version of the mod that wasn't installed through Modrinth, please delete it and download the latest version using the link below.\n\n"
+        "🇲🇽:\n Si tienes una versión anterior del mod que no fue instalada a través de Modrinth, elimínala y descarga la versión más reciente usando el enlace que aparece a continuación.") # add description
 
         info_embed.add_field(name="Mod Link:", value="https://modrinth.com/mod/selectium-mod", inline=False)
         info_embed.add_field(name="Token (DO NOT SHARE):", value=token, inline=False)
@@ -44,8 +46,7 @@ class PlayerList(commands.Cog):
 
     @app_commands.command(name="player_add")
     @app_commands.guilds(discord.Object(GUILD_ID))
-    # @app_commands.default_permissions(administrator=True)
-    # @app_commands.checks.has_any_role(*access_id)
+    @app_commands.checks.has_any_role(*BOT_ROLE_IDS)
     async def player_add(self, interaction, category: Player.Category, name_or_uuid: str):
         await interaction.response.defer()
 
@@ -68,6 +69,7 @@ class PlayerList(commands.Cog):
 
     @app_commands.command(name="player_edit")
     @app_commands.guilds(discord.Object(GUILD_ID))
+    @app_commands.checks.has_any_role(*BOT_ROLE_IDS)
     async def player_edit(self, interaction, field: DatabaseManager.Fields, field_input: str, alt: str = None,
                             clan: str = None, category: Player.Category = None, discord_id: str = None, token: str = None):
         await interaction.response.defer()
@@ -90,6 +92,7 @@ class PlayerList(commands.Cog):
 
     @app_commands.command(name="player_info")
     @app_commands.guilds(discord.Object(GUILD_ID))
+    @app_commands.checks.has_any_role(*BOT_ROLE_IDS)
     async def player_info(self, interaction, field: DatabaseManager.Fields, field_input: str):
         await interaction.response.defer()
 
@@ -100,6 +103,7 @@ class PlayerList(commands.Cog):
 
     @app_commands.command(name="player_remove")
     @app_commands.guilds(discord.Object(GUILD_ID))
+    @app_commands.checks.has_any_role(*BOT_ROLE_IDS)
     async def player_remove(self, interaction, field: DatabaseManager.Fields, field_input: str):
         await interaction.response.defer()
 
@@ -154,9 +158,9 @@ class PlayerList(commands.Cog):
         if player_data.token_hash is None and player_data.dc_id is not None:
             guild = self.bot.get_guild(GUILD_ID)
             try:
-                dc_member = guild.get_member(player_data.dc_id) or await guild.fetch_member(player_data.dc_id)
+                dc_member: discord.Member = guild.get_member(player_data.dc_id) or await guild.fetch_member(player_data.dc_id)
 
-                if discord.utils.get(dc_member.roles, id=ACCESS_ROLE_ID):
+                if any(member_role.id in MOD_ROLE_IDS for member_role in dc_member.roles):
                     token = secrets.token_hex(32)
 
                     await dc_member.send(embed=self.token_embed(token))
@@ -165,7 +169,7 @@ class PlayerList(commands.Cog):
                 pass
         return {}
 
-    @tasks.loop(minutes=1)
+    @tasks.loop(minutes=30)
     async def update(self):
         players = await self.bot.db.get_player()
         upd_count = -next((i for i, p in enumerate(players) if p.mc_uuid == self.upd_last_uuid), 0)
