@@ -134,7 +134,7 @@ class DatabaseManager:
 
     async def get_player(self, field: Fields = None, field_input = None):
         if field is None:
-            cur = await self.conn.execute(f"SELECT DISTINCT * FROM players ORDER BY {self.Fields.UUID.value}")
+            cur = await self.conn.execute(f"SELECT * FROM players ORDER BY {self.Fields.UUID.value}")
         else:
             if not isinstance(field, self.Fields): raise TypeError("field is not a valid Fields enum")
 

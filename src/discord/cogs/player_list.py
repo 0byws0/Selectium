@@ -133,7 +133,7 @@ class PlayerList(commands.Cog):
     @player_info.autocomplete("field_input")
     @player_remove.autocomplete("field_input")
     async def field_input_autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
-        return await self.discord_autocomplete(DatabaseManager.Fields(interaction.namespace.field), current)
+        return await self.discord_autocomplete(DatabaseManager.Fields(field_name) if (field_name := interaction.namespace.field) else None, current)
 
     @player_edit.autocomplete("alt")
     async def edit_alt_autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:

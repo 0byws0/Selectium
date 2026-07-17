@@ -13,7 +13,7 @@ from src.discord.bot import SelectiumManager
 @asynccontextmanager
 async def lifespan(app):
     database = DatabaseManager()
-    conn_manager = ConnectionManager(database)
+    conn_manager = ConnectionManager()
     bot = SelectiumManager(database, conn_manager)
     app.state.database = database
     app.state.conn_manager = conn_manager

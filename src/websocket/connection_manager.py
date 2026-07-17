@@ -1,4 +1,4 @@
-from fastapi import WebSocket, status
+from fastapi import WebSocket, status, WebSocketException
 from enum import Enum
 import json
 
@@ -25,31 +25,32 @@ class ConnectionManager:
             except (ValueError, TypeError, KeyError, AttributeError):
                 return None
 
-    def __init__(self, db):
+    def __init__(self):
         self.active_connections: dict[str, WebSocket] = {}
-        self.db = db
 
-    async def connect(self, conn_uuid: str, websocket: WebSocket):
-        await self.disconnect(conn_uuid)
-        self.active_connections[conn_uuid] = websocket
-        await websocket.accept()
+    async def connect(self, conn_uuid: str, conn_ws: WebSocket):
+        if conn_uuid in self.active_connections:
+            raise WebSocketException(status.WS_1008_POLICY_VIOLATION)
+        else:
+            self.active_connections[conn_uuid] = conn_ws
+            await conn_ws.accept()
 
     async def disconnect(self, conn_uuid: str):
-        if conn := self.active_connections.pop(conn_uuid, None):
+        if conn_ws := self.active_connections.pop(conn_uuid, None):
             try:
-                await conn.close(status.WS_1000_NORMAL_CLOSURE)
+                await conn_ws.close(status.WS_1000_NORMAL_CLOSURE)
             except Exception:
                 pass
 
     async def broadcast(self, action: Actions, payload_data, conn_uuid: str = None):
         message = json.dumps({"action":action.value, "payload":action.convert(payload_data)}, separators=(",", ":"))
-        conn_snapshot = [conn_uuid] if conn_uuid else list(self.active_connections.keys())
+        if conn_uuid is None:
+            conn_snapshot = list(self.active_connections.values())
+        else:
+            conn_snapshot = [conn_ws] if (conn_ws := self.active_connections.get(conn_uuid)) else []
 
-        for conn_uuid in conn_snapshot:
+        for ws in conn_snapshot:
             try:
-                if conn := self.active_connections.get(conn_uuid): await conn.send_text(message)
+                await ws.send_text(message)
             except Exception:
-                await self.disconnect(conn_uuid)
-
-    async def init_broadcast(self, conn_uuid: str):
-        await self.broadcast(self.Actions.LIST_UPDATE, await self.db.get_player(), conn_uuid)
+                pass

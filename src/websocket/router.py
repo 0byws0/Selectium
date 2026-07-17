@@ -2,13 +2,12 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, WebSocketExceptio
 import secrets
 
 from src.database.database_manager import DatabaseManager
+from src.websocket.connection_manager import ConnectionManager
 
 DUMMY_TOKEN = DatabaseManager.Fields.TOKEN.convert(secrets.token_hex(32))
 ws_router = APIRouter()
 
-async def verify_headers(websocket: WebSocket,
-                         conn_uuid: str = Header(alias="uuid"),
-                         conn_token: str = Header(alias="token")):
+async def verify_headers(websocket: WebSocket, conn_uuid: str = Header(alias="uuid"), conn_token: str = Header(alias="token")):
     database = websocket.app.state.database
     player_data = await database.get_player(DatabaseManager.Fields.UUID, conn_uuid)
 
@@ -23,10 +22,11 @@ async def verify_headers(websocket: WebSocket,
 @ws_router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, conn_uuid = Depends(verify_headers)):
     conn_manager = websocket.app.state.conn_manager
+    database = websocket.app.state.database
     await conn_manager.connect(conn_uuid, websocket)
 
     try:
-        await conn_manager.init_broadcast(conn_uuid)
+        await conn_manager.broadcast(ConnectionManager.Actions.LIST_UPDATE, await database.get_player(), conn_uuid)
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
