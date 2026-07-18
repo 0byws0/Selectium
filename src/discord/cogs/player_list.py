@@ -20,7 +20,7 @@ class PlayerList(commands.Cog):
         self.update.cancel()
 
     @staticmethod
-    def player_info_embed(player_data: Player) -> discord.Embed:
+    def _player_info_embed(player_data: Player) -> discord.Embed:
         info_embed = discord.Embed(title="Selectium Database", color=player_data.cat.color)
 
         info_embed.add_field(name="Username:", value=player_data.mc_name, inline=False)
@@ -34,7 +34,7 @@ class PlayerList(commands.Cog):
         return info_embed
 
     @staticmethod
-    def token_embed(token: str) -> discord.Embed:
+    def _token_embed(token: str) -> discord.Embed:
         info_embed = discord.Embed(title="Selectium Mod", description=
         "🇺🇸:\n If you have a previous version of the mod that wasn't installed through Modrinth, please delete it and download the latest version using the link below.\n\n"
         "🇲🇽:\n Si tienes una versión anterior del mod que no fue instalada a través de Modrinth, elimínala y descarga la versión más reciente usando el enlace que aparece a continuación.") # add description
@@ -97,7 +97,7 @@ class PlayerList(commands.Cog):
         await interaction.response.defer()
 
         if player_data_list := await self.bot.db.get_player(field, field_input):
-            await Paginator.Simple().start(interaction, pages=[self.player_info_embed(player_data) for player_data in player_data_list])
+            await Paginator.Simple().start(interaction, pages=[self._player_info_embed(player_data) for player_data in player_data_list])
         else:
             await interaction.followup.send(f"{field.name.capitalize()} `{field_input}` not found in database")
 
@@ -154,7 +154,7 @@ class PlayerList(commands.Cog):
     async def edit_token_autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
         return [app_commands.Choice(name="- (remove)", value="-")] if not current or current in ["-", "- (remove)"] else []
 
-    async def update_player_discord(self, player_data):
+    async def _update_player_discord(self, player_data):
         if player_data.token_hash is None and player_data.dc_id is not None:
             guild = self.bot.get_guild(GUILD_ID)
             try:
@@ -163,7 +163,7 @@ class PlayerList(commands.Cog):
                 if any(member_role.id in MOD_ROLE_IDS for member_role in dc_member.roles):
                     token = secrets.token_hex(32)
 
-                    await dc_member.send(embed=self.token_embed(token))
+                    await dc_member.send(embed=self._token_embed(token))
                     return {DatabaseManager.Fields.TOKEN.value:token}
             except discord.HTTPException:
                 pass
@@ -186,7 +186,7 @@ class PlayerList(commands.Cog):
                     upd_params[DatabaseManager.Fields.USERNAME.value] = player_data.mc_name
                 upd_count += 1
 
-            upd_params.update(await self.update_player_discord(player_data))
+            upd_params.update(await self._update_player_discord(player_data))
 
             if upd_params:
                 await self.bot.db.update_player(DatabaseManager.Fields.UUID, player_data.mc_uuid, **upd_params)

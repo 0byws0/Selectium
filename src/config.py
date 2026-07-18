@@ -19,20 +19,20 @@ try:
 except (KeyError, ValueError) as e:
     raise RuntimeError(f"Environment file misconfigured: {e}")
 
-file_handler = TimedRotatingFileHandler("logs/app.log", when="midnight", interval=1, backupCount=7, encoding="utf-8")
-file_handler.suffix = "%Y-%m-%d"
-file_handler.setFormatter(logging.Formatter("%(asctime)s | %(name)s | %(levelname)s | %(message)s"))
+_file_handler = TimedRotatingFileHandler("logs/app.log", when="midnight", interval=1, backupCount=7, encoding="utf-8")
+_file_handler.suffix = "%Y-%m-%d"
+_file_handler.setFormatter(logging.Formatter("%(asctime)s | %(name)s | %(levelname)s | %(message)s"))
 
-log_queue = Queue(-1)
-queue_handler = QueueHandler(log_queue)
-log_listener = QueueListener(log_queue, file_handler)
+_log_queue = Queue(-1)
+_queue_handler = QueueHandler(_log_queue)
+log_listener = QueueListener(_log_queue, _file_handler)
 
-discord_logger = logging.getLogger("discord")
-discord_logger.setLevel(logging.INFO)
-discord_logger.addHandler(queue_handler)
-discord_logger.propagate = False
+_discord_logger = logging.getLogger("discord")
+_discord_logger.setLevel(logging.INFO)
+_discord_logger.addHandler(_queue_handler)
+_discord_logger.propagate = False
 
 for logger_name in ("uvicorn.error", "uvicorn.access"):
-    uvicorn_logger = logging.getLogger(logger_name)
-    uvicorn_logger.setLevel(logging.INFO)
-    uvicorn_logger.addHandler(queue_handler)
+    _uvicorn_logger = logging.getLogger(logger_name)
+    _uvicorn_logger.setLevel(logging.INFO)
+    _uvicorn_logger.addHandler(_queue_handler)
