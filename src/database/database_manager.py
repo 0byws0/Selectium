@@ -72,11 +72,16 @@ class DatabaseManager:
                         {self.Fields.ALT.value} TEXT,
                         {self.Fields.DISCORD.value} INTEGER,
                         {self.Fields.TOKEN.value} BLOB)""")
-        await self.conn.execute(f"""CREATE TABLE IF NOT EXISTS lists (
-                                server_id INTEGER PRIMARY KEY,
+
+        await self.conn.execute(f"""CREATE TABLE IF NOT EXISTS server (
+                                id INTEGER PRIMARY KEY,
+                                guild_org_msg_id INTEGER,
                                 ally_msg_id INTEGER,
                                 neutral_msg_id INTEGER,
                                 target_msg_id INTEGER)""")
+
+        await self.conn.execute("""DROP TABLE IF EXISTS lists""") # remove asap
+
         await self.conn.commit()
 
     async def close(self):
@@ -163,25 +168,25 @@ class DatabaseManager:
 
         return [Player(UUID(bytes=row[0]), row[1], Player.Category[row[2]], row[3], row[4], row[5], row[6]) for row in rows]
 
-    async def insert_list_id(self, server_id: int, ally_msg_id: int = None, neutral_msg_id: int = None, target_msg_id: int = None):
-        if ally_msg_id is None and neutral_msg_id is None and target_msg_id is None: raise TypeError("No parameters provided")
+    async def insert_server_data(self, guild_org_msg_id: int = None, ally_msg_id: int = None, neutral_msg_id: int = None, target_msg_id: int = None):
+        if guild_org_msg_id is None and ally_msg_id is None and neutral_msg_id is None and target_msg_id is None: raise TypeError("No parameters provided")
 
-        await self.conn.execute("INSERT INTO lists "
-                                "VALUES (:server_id, :ally_msg_id, :neutral_msg_id, :target_msg_id) "
-                                "ON CONFLICT (server_id) DO UPDATE SET "
+        await self.conn.execute("INSERT INTO server "
+                                "VALUES (1, :guild_org_msg_id, :ally_msg_id, :neutral_msg_id, :target_msg_id) "
+                                "ON CONFLICT (id) DO UPDATE SET "
+                                "guild_org_msg_id=COALESCE(:guild_org_msg_id, guild_org_msg_id), "
                                 "ally_msg_id=COALESCE(:ally_msg_id, ally_msg_id), "
                                 "neutral_msg_id=COALESCE(:neutral_msg_id, neutral_msg_id), "
                                 "target_msg_id=COALESCE(:target_msg_id, target_msg_id)",
-                                {"server_id": server_id,
+                                {"guild_org_msg_id": guild_org_msg_id,
                                  "ally_msg_id": ally_msg_id,
                                  "neutral_msg_id": neutral_msg_id,
                                  "target_msg_id": target_msg_id})
         await self.conn.commit()
 
-    async def get_list_id(self, server_id: int):
-        cur = await self.conn.execute("SELECT * FROM lists "
-                                      "WHERE server_id=:server_id",
-                                      {"server_id": server_id})
+    async def get_server_data(self):
+        cur = await self.conn.execute("SELECT guild_org_msg_id, ally_msg_id, neutral_msg_id, target_msg_id "
+                                      "FROM server WHERE id=1")
 
-        rows = await cur.fetchone()
-        return row[1:] if (row := rows) else None
+        row = await cur.fetchone()
+        return row

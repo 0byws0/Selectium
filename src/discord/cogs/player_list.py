@@ -36,11 +36,15 @@ class PlayerList(commands.Cog):
     @staticmethod
     def _token_embed(token: str) -> discord.Embed:
         info_embed = discord.Embed(title="Selectium Mod", description=
-        "🇺🇸:\n If you have a previous version of the mod that wasn't installed through Modrinth, please delete it and download the latest version using the link below.\n\n"
-        "🇲🇽:\n Si tienes una versión anterior del mod que no fue instalada a través de Modrinth, elimínala y descarga la versión más reciente usando el enlace que aparece a continuación.") # add description
+        "🇺🇸:\n You are eligible to connect the optional clan mod to Discord. "
+        "For more information and setup instructions, visit the #sl-mod channel. "
+        "If you encounter any issues, please message byws.\n\n"
+        "🇲🇽:\n Puedes conectar el mod opcional de clan a Discord. "
+        "Para obtener más información e instrucciones de configuración, visita el canal #sl-mod. "
+        "Si encuentras algún problema, envía un mensaje a byws.")
 
         info_embed.add_field(name="Mod Link:", value="https://modrinth.com/mod/selectium-mod", inline=False)
-        info_embed.add_field(name="Token (DO NOT SHARE):", value=token, inline=False)
+        info_embed.add_field(name="Token (DO NOT SHARE / NO COMPARTIR):", value=token, inline=False)
 
         return info_embed
 
@@ -132,40 +136,40 @@ class PlayerList(commands.Cog):
     @player_edit.autocomplete("field_input")
     @player_info.autocomplete("field_input")
     @player_remove.autocomplete("field_input")
-    async def field_input_autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    async def field_input_autocomplete(self, interaction, current):
         return await self.discord_autocomplete(DatabaseManager.Fields(field_name) if (field_name := interaction.namespace.field) else None, current)
 
     @player_edit.autocomplete("alt")
-    async def edit_alt_autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    async def edit_alt_autocomplete(self, interaction, current):
         return ([app_commands.Choice(name="- (remove)", value="-")] if not current or current in ["-", "- (remove)"] else []
                 + await self.discord_autocomplete(DatabaseManager.Fields.ALT, current))
 
     @player_edit.autocomplete("clan")
-    async def edit_clan_autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    async def edit_clan_autocomplete(self, interaction, current):
         return ([app_commands.Choice(name="- (remove)", value="-")] if not current or current in ["-", "- (remove)"] else []
                 + await self.discord_autocomplete(DatabaseManager.Fields.CLAN, current))
 
     @player_edit.autocomplete("discord_id")
-    async def edit_discord_id_autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    async def edit_discord_id_autocomplete(self, interaction, current):
         return ([app_commands.Choice(name="- (remove)", value="-")] if not current or current in ["-", "- (remove)"] else []
                 + await self.discord_autocomplete(DatabaseManager.Fields.DISCORD, current))
 
     @player_edit.autocomplete("token")
-    async def edit_token_autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    async def edit_token_autocomplete(self, interaction, current):
         return [app_commands.Choice(name="- (remove)", value="-")] if not current or current in ["-", "- (remove)"] else []
 
     async def _update_player_discord(self, player_data):
         if player_data.token_hash is None and player_data.dc_id is not None:
             guild = self.bot.get_guild(GUILD_ID)
             try:
-                dc_member: discord.Member = guild.get_member(player_data.dc_id) or await guild.fetch_member(player_data.dc_id)
+                dc_member = guild.get_member(player_data.dc_id) or await guild.fetch_member(player_data.dc_id)
 
                 if any(member_role.id in MOD_ROLE_IDS for member_role in dc_member.roles):
                     token = secrets.token_hex(32)
 
                     await dc_member.send(embed=self._token_embed(token))
                     return {DatabaseManager.Fields.TOKEN.value:token}
-            except discord.HTTPException:
+            except discord.DiscordException:
                 pass
         return {}
 

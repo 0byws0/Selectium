@@ -27,8 +27,8 @@ class SelectiumManager(commands.Bot):
     async def setup_hook(self):
         self.tree.on_error = self.command_error
 
-        await self.load_extension("discord.cogs.player_list")
-        await self.load_extension("discord.cogs.announcements")
+        await self.load_extension("src.discord.cogs.player_list")
+        await self.load_extension("src.discord.cogs.announcements")
         await self.tree.sync(guild=discord.Object(GUILD_ID))
 
     async def close(self):
