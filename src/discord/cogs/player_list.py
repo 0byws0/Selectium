@@ -160,8 +160,8 @@ class PlayerList(commands.Cog):
 
     async def _update_player_discord(self, player_data):
         if player_data.token_hash is None and player_data.dc_id is not None:
-            guild = self.bot.get_guild(GUILD_ID)
             try:
+                guild = self.bot.get_guild(GUILD_ID) or await self.bot.fetch_guild(GUILD_ID)
                 dc_member = guild.get_member(player_data.dc_id) or await guild.fetch_member(player_data.dc_id)
 
                 if any(member_role.id in MOD_ROLE_IDS for member_role in dc_member.roles):

@@ -20,27 +20,31 @@ class Announcements(commands.Cog):
         if player_data.org == self.GUILD_ORG:
             player_group = self.GUILD_ORG
             player_subgroup = self.NO_SUBGROUP
-            guild = self.bot.get_guild(GUILD_ID)
 
-            if player_data.dc_id is not None:
-                try:
-                    dc_member = guild.get_member(player_data.dc_id) or await guild.fetch_member(player_data.dc_id)
+            try:
+                guild = self.bot.get_guild(GUILD_ID) or await self.bot.fetch_guild(GUILD_ID)
+                if player_data.dc_id is not None:
+                        dc_member = guild.get_member(player_data.dc_id) or await guild.fetch_member(player_data.dc_id)
 
-                    if highest_role := next((r for role_id in reversed(ORDERED_ROLES_IDS) if (r := dc_member.get_role(role_id))), None):
-                        player_subgroup = highest_role.name.upper()
-                except discord.DiscordException:
-                    pass
+                        if highest_role := next((r for role_id in reversed(ORDERED_ROLES_IDS)
+                                                 if (r := dc_member.get_role(role_id))), None):
+                            player_subgroup = highest_role.name.upper()
 
-            if player_group not in self.player_list:
-                self.player_list[player_group] = {(guild.get_role(role_id) or await guild.fetch_role(role_id)).name.upper():""
-                                                  for role_id in reversed(ORDERED_ROLES_IDS)}
+                if player_group not in self.player_list:
+                    self.player_list[player_group] = {(guild.get_role(role_id) or
+                                                       await guild.fetch_role(role_id)).name.upper():{None:[]}
+                                                      for role_id in reversed(ORDERED_ROLES_IDS)}
+            except discord.DiscordException:
+                pass
         else:
             player_group = player_data.cat
             player_subgroup = player_data.org or self.NO_SUBGROUP
-            if player_group not in self.player_list: self.player_list[player_group] = {}
-        
-        self.player_list[player_group][player_subgroup] = (self.player_list[player_group].get(player_subgroup, "") +
-            "`" + player_data.mc_name + (" / " + player_data.alias if player_data.alias else "") + "` ")
+
+        group_dict = self.player_list.setdefault(player_group, {})
+        subgroup_dict = group_dict.setdefault(player_subgroup, {None:[]})
+        alias_list = subgroup_dict.setdefault(player_data.alias, [])
+
+        alias_list.append(player_data.mc_name)
 
     async def push_list_update(self):
         db_msg_ids = list(await self.bot.db.get_server_data() or (None, None, None))
@@ -48,21 +52,28 @@ class Announcements(commands.Cog):
         for group, subgroups in self.player_list.items():
             if (disp_config := self.LIST_DISP.get(group)) is None: continue
 
-            list_str = disp_config["title"] + "\n"
-
             if self.NO_SUBGROUP in subgroups: subgroups[self.NO_SUBGROUP] = subgroups.pop(self.NO_SUBGROUP)
-            for subgroup, members in subgroups.items():
-                list_str += f"## {subgroup}\n{members}\n\n"
+            list_str = (disp_config["title"] + "\n" +
+                        "".join(f"## {subgroup}\n" +
+                                " ".join(f"`{alias} = {' / '.join(members)}`" if alias
+                                         else " ".join(f"`{m}`" for m in members)
+                                         for alias, members in aliases.items()) + "\n\n"
+                                for subgroup, aliases in subgroups.items()))
 
-            channel = self.bot.get_channel(disp_config["ch_id"]) or await self.bot.fetch_channel(disp_config["ch_id"])
-
-            if db_msg_ids[disp_config["msg_idx"]]:
-                try:
+            try:
+                channel = self.bot.get_channel(disp_config["ch_id"]) or await self.bot.fetch_channel(disp_config["ch_id"])
+                if db_msg_ids[disp_config["msg_idx"]]:
                     await (channel.get_partial_message(db_msg_ids[disp_config["msg_idx"]])).edit(content=list_str)
-                except discord.NotFound:
-                    db_msg_ids[disp_config["msg_idx"]] = (await channel.send(list_str)).id
-            else:
+                    continue
+            except discord.NotFound:
+                pass
+            except discord.HTTPException:
+                continue
+
+            try:
                 db_msg_ids[disp_config["msg_idx"]] = (await channel.send(list_str)).id
+            except discord.DiscordException:
+                pass
 
         self.player_list.clear()
         await self.bot.db.insert_server_data(*db_msg_ids)
