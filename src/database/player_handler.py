@@ -1,8 +1,10 @@
 from uuid import UUID
 from enum import Enum
+from dataclasses import dataclass
 
 from src.database.mojang_api import MojangAPI
 
+@dataclass
 class Player:
     class Category(Enum):
         ALLY = 0; NEUTRAL = 1; TARGET = 2
@@ -14,15 +16,13 @@ class Player:
                 case self.NEUTRAL: return 0xFFAA00
                 case self.TARGET: return 0xAA0000
 
-    def __init__(self, mc_uuid: UUID | None, mc_name: str | None, cat: Category, org: str | None,
-                 alias: str | None, dc_id: int | None, token_hash: bytes | None):
-        self.mc_uuid = mc_uuid
-        self.mc_name = mc_name
-        self.cat = cat
-        self.org = org
-        self.alias = alias
-        self.dc_id = dc_id
-        self.token_hash = token_hash
+    mc_uuid: UUID | None
+    mc_name: str | None
+    cat: Category
+    org: str | None
+    alias: str | None
+    dc_id: int | None
+    token_hash: bytes | None
 
     @classmethod
     async def create(cls, mc_uuid: UUID | None, mc_name: str | None, cat: Category, org: str = None,

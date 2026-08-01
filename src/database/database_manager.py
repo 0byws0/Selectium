@@ -4,6 +4,7 @@ from uuid import UUID
 import hashlib
 
 from src.database.player_handler import Player
+from src.database.guild_handler import GuildConfig
 
 class DatabaseManager:
     class Fields(Enum):
@@ -36,22 +37,22 @@ class DatabaseManager:
             except (ValueError, TypeError, KeyError, AttributeError):
                 return None
 
-        # def deconvert(self, field_input):
-        #     if field_input is None: return None
-        #     try:
-        #         match self:
-        #             case self.UUID:
-        #                 return UUID(bytes=field_input) if isinstance(field_input, bytes) else UUID(field_input)
-        #             case self.USERNAME | self.CLAN | self.ALT:
-        #                 return str(field_input)
-        #             case self.CATEGORY:
-        #                 return Player.Category[field_input]
-        #             case self.DISCORD:
-        #                 return int(field_input)
-        #             case self.TOKEN:
-        #                 return field_input
-        #     except (ValueError, TypeError, KeyError, AttributeError):
-        #         return None
+        def deconvert(self, field_input):
+            if field_input is None: return None
+            try:
+                match self:
+                    case self.UUID:
+                        return UUID(bytes=field_input) if isinstance(field_input, bytes) else UUID(field_input)
+                    case self.USERNAME | self.CLAN | self.ALT:
+                        return str(field_input)
+                    case self.CATEGORY:
+                        return Player.Category[field_input]
+                    case self.DISCORD:
+                        return int(field_input)
+                    case self.TOKEN:
+                        return field_input
+            except (ValueError, TypeError, KeyError, AttributeError):
+                return None
 
         def collation(self):
             return "COLLATE NOCASE" if self in (self.USERNAME, self.ALT, self.CLAN) else ""
@@ -62,6 +63,7 @@ class DatabaseManager:
 
     async def connect(self):
         self.conn = await aiosqlite.connect(self.db_path)
+        # self.conn.row_factory = aiosqlite.Row
 
         await self.conn.execute("PRAGMA journal_mode=WAL")
         await self.conn.execute(f"""CREATE TABLE IF NOT EXISTS players (
@@ -80,12 +82,19 @@ class DatabaseManager:
                                 neutral_msg_id INTEGER,
                                 target_msg_id INTEGER)""")
 
-        await self.conn.execute("""DROP TABLE IF EXISTS lists""") # remove asap
-
         await self.conn.commit()
 
     async def close(self):
         await self.conn.close()
+
+    def _row_to_player(self, row) -> Player:
+        return Player(self.Fields.UUID.deconvert(row[0]),
+                      self.Fields.USERNAME.deconvert(row[1]),
+                      self.Fields.CATEGORY.deconvert(row[2]),
+                      self.Fields.CLAN.deconvert(row[3]),
+                      self.Fields.ALT.deconvert(row[4]),
+                      self.Fields.DISCORD.deconvert(row[5]),
+                      self.Fields.TOKEN.deconvert(row[6]),)
 
     async def insert_player(self, player_data: Player):
         cur = await self.conn.execute(f"INSERT INTO players "
@@ -128,14 +137,14 @@ class DatabaseManager:
 
         rows = await cur.fetchall()
         await self.conn.commit()
-        return [Player(UUID(bytes=row[0]), row[1], Player.Category[row[2]], row[3], row[4], row[5], row[6]) for row in rows]
+        return [self._row_to_player(row) for row in rows]
 
     async def get_field(self, field: Fields):
         if not isinstance(field, self.Fields): raise TypeError("field is not a valid Fields enum")
         cur = await self.conn.execute(f"SELECT DISTINCT {field.value} from players "
                                       f"WHERE {field.value} IS NOT NULL")
         rows = await cur.fetchall()
-        return [(UUID(bytes=row[0]) if (field == self.Fields.UUID) else row[0]) for row in rows]
+        return [field.deconvert(row[0]) for row in rows]
 
     async def get_player(self, field: Fields = None, field_input = None):
         if field is None:
@@ -151,7 +160,7 @@ class DatabaseManager:
                         {"input": field_input})
 
         rows = await cur.fetchall()
-        return [Player(UUID(bytes=row[0]), row[1], Player.Category[row[2]], row[3], row[4], row[5], row[6]) for row in rows]
+        return [self._row_to_player(row) for row in rows]
 
     async def remove_player(self, field: Fields, field_input):
         if not isinstance(field, self.Fields): raise TypeError("field is not a valid Fields enum")
@@ -166,7 +175,7 @@ class DatabaseManager:
         rows = await cur.fetchall()
         await self.conn.commit()
 
-        return [Player(UUID(bytes=row[0]), row[1], Player.Category[row[2]], row[3], row[4], row[5], row[6]) for row in rows]
+        return [self._row_to_player(row) for row in rows]
 
     async def insert_server_data(self, guild_org_msg_id: int = None, ally_msg_id: int = None, neutral_msg_id: int = None, target_msg_id: int = None):
         if guild_org_msg_id is None and ally_msg_id is None and neutral_msg_id is None and target_msg_id is None: raise TypeError("No parameters provided")
@@ -189,4 +198,5 @@ class DatabaseManager:
                                       "FROM server WHERE id=1")
 
         row = await cur.fetchone()
-        return row
+        if row: return GuildConfig(row[0], row[1], row[2], row[3])
+        return GuildConfig(None, None, None, None)

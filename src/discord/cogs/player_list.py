@@ -34,7 +34,7 @@ class PlayerList(commands.Cog):
         return info_embed
 
     @staticmethod
-    def _token_embed(token: str) -> discord.Embed:
+    def _token_embed(mc_name: str, mc_uuid: UUID, token: str) -> discord.Embed:
         info_embed = discord.Embed(title="Selectium Mod", description=
         "🇺🇸:\n You are eligible to connect the optional clan mod to Discord. "
         "For more information and setup instructions, visit the #sl-mod channel. "
@@ -44,6 +44,7 @@ class PlayerList(commands.Cog):
         "Si encuentras algún problema, envía un mensaje a byws.")
 
         info_embed.add_field(name="Mod Link:", value="https://modrinth.com/mod/selectium-mod", inline=False)
+        info_embed.add_field(name="Account:", value=f"{mc_name} ({mc_uuid})", inline=False)
         info_embed.add_field(name="Token (DO NOT SHARE / NO COMPARTIR):", value=token, inline=False)
 
         return info_embed
@@ -117,42 +118,45 @@ class PlayerList(commands.Cog):
         else:
             await interaction.followup.send(f"{field.name.capitalize()} `{field_input}` not found database")
 
-    async def discord_autocomplete(self, field, current):
-        if not field or not current: return []
+    async def discord_autocomplete(self, field, current, choices):
+        if not field or not current: return choices
 
         field_data = await self.bot.db.get_field(field)
-        filtered_choice = []
         cur_input = current.lower()
 
         for choice in field_data:
             choice = str(choice)
             if cur_input in choice.lower():
-                filtered_choice.append(app_commands.Choice(name=choice, value=choice))
-            if len(filtered_choice) >= 25:
+                choices.append(app_commands.Choice(name=choice, value=choice))
+            if len(choices) >= 25:
                 break
 
-        return filtered_choice
+        return choices
 
     @player_edit.autocomplete("field_input")
     @player_info.autocomplete("field_input")
     @player_remove.autocomplete("field_input")
     async def field_input_autocomplete(self, interaction, current):
-        return await self.discord_autocomplete(DatabaseManager.Fields(field_name) if (field_name := interaction.namespace.field) else None, current)
+        return await self.discord_autocomplete(DatabaseManager.Fields(field_name)
+                                               if (field_name := interaction.namespace.field) else None, current, [])
 
     @player_edit.autocomplete("alt")
     async def edit_alt_autocomplete(self, interaction, current):
-        return ([app_commands.Choice(name="- (remove)", value="-")] if not current or current in ["-", "- (remove)"] else []
-                + await self.discord_autocomplete(DatabaseManager.Fields.ALT, current))
+        return await self.discord_autocomplete(DatabaseManager.Fields.ALT, current,
+                                               [app_commands.Choice(name="- (remove)", value="-")]
+                                               if not current or current in ["-", "- (remove)"] else [])
 
     @player_edit.autocomplete("clan")
     async def edit_clan_autocomplete(self, interaction, current):
-        return ([app_commands.Choice(name="- (remove)", value="-")] if not current or current in ["-", "- (remove)"] else []
-                + await self.discord_autocomplete(DatabaseManager.Fields.CLAN, current))
+        return await self.discord_autocomplete(DatabaseManager.Fields.CLAN, current,
+                                               [app_commands.Choice(name="- (remove)", value="-")]
+                                               if not current or current in ["-", "- (remove)"] else [])
 
     @player_edit.autocomplete("discord_id")
     async def edit_discord_id_autocomplete(self, interaction, current):
-        return ([app_commands.Choice(name="- (remove)", value="-")] if not current or current in ["-", "- (remove)"] else []
-                + await self.discord_autocomplete(DatabaseManager.Fields.DISCORD, current))
+        return await self.discord_autocomplete(DatabaseManager.Fields.DISCORD, current,
+                                               [app_commands.Choice(name="- (remove)", value="-")]
+                                               if not current or current in ["-", "- (remove)"] else [])
 
     @player_edit.autocomplete("token")
     async def edit_token_autocomplete(self, interaction, current):
@@ -167,13 +171,13 @@ class PlayerList(commands.Cog):
                 if any(member_role.id in MOD_ROLE_IDS for member_role in dc_member.roles):
                     token = secrets.token_hex(32)
 
-                    await dc_member.send(embed=self._token_embed(token))
+                    await dc_member.send(embed=self._token_embed(player_data.mc_name, player_data.mc_uuid, token))
                     return {DatabaseManager.Fields.TOKEN.value:token}
             except discord.DiscordException:
                 pass
         return {}
 
-    @tasks.loop(minutes=30)
+    @tasks.loop(minutes=1)
     async def update(self):
         players = await self.bot.db.get_player()
         upd_count = -next((i for i, p in enumerate(players) if p.mc_uuid == self.upd_last_uuid), 0)
