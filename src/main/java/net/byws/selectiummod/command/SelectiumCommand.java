@@ -4,7 +4,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.SharedSuggestionProvider;
@@ -15,7 +15,7 @@ import java.util.UUID;
 
 import net.byws.selectiummod.config.ConfigJsonObj;
 import net.byws.selectiummod.config.ConfigManager;
-import net.byws.selectiummod.websocket.WebSocketListener;
+import net.byws.selectiummod.websocket.DiscordConnection;
 
 public class SelectiumCommand
 {
@@ -27,7 +27,7 @@ public class SelectiumCommand
     /** Suggests names already in the player list. */
     private static final SuggestionProvider<FabricClientCommandSource> PLAYER_LIST_NAMES =
             (ctx, builder) ->
-                    SharedSuggestionProvider.suggest(ConfigManager.getInstance().getListNames(), builder);
+                    SharedSuggestionProvider.suggest(ConfigManager.getInstance().getPlayerNameList().keySet(), builder);
 
     private static String validateName(String commandInput, Collection<String> usernames)
     {
@@ -40,13 +40,13 @@ public class SelectiumCommand
     public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher)
     {
         ConfigManager configManager = ConfigManager.getInstance();
-        var playerAddLiteral = ClientCommandManager.literal("add");
-        var playerEditLiteral = ClientCommandManager.literal("edit");
+        var playerAddLiteral = ClientCommands.literal("add");
+        var playerEditLiteral = ClientCommands.literal("edit");
 
         for (ConfigJsonObj.Category category : ConfigJsonObj.Category.values())
         {
-            playerAddLiteral.then(ClientCommandManager.literal(category.name())
-                    .then(ClientCommandManager.argument("name/UUID", StringArgumentType.word())
+            playerAddLiteral.then(ClientCommands.literal(category.name())
+                    .then(ClientCommands.argument("name/UUID", StringArgumentType.word())
                             .suggests(ONLINE_PLAYER_NAMES)
                             .executes(ctx -> playerAdd(ctx,
                                     validateName(StringArgumentType.getString(ctx, "name/UUID"), configManager.getOnlinePlayers().keySet()),
@@ -54,18 +54,18 @@ public class SelectiumCommand
         }
         for (ConfigJsonObj.Category category : ConfigJsonObj.Category.values())
         {
-            playerEditLiteral.then(ClientCommandManager.literal(category.name())
-                    .then(ClientCommandManager.argument("name/UUID", StringArgumentType.word())
+            playerEditLiteral.then(ClientCommands.literal(category.name())
+                    .then(ClientCommands.argument("name/UUID", StringArgumentType.word())
                             .suggests(PLAYER_LIST_NAMES)
                             .executes(ctx -> playerEdit(ctx,
-                                    validateName(StringArgumentType.getString(ctx, "name/UUID"), configManager.getListNames()),
+                                    validateName(StringArgumentType.getString(ctx, "name/UUID"), configManager.getPlayerNameList().keySet()),
                                     category))));
         }
 
         dispatcher.register(
-                ClientCommandManager.literal("selectium")
+                ClientCommands.literal("selectium")
 
-                        .then(ClientCommandManager.literal("player")
+                        .then(ClientCommands.literal("player")
 
                                 // /playerAdd <Category> <name/UUID>
                                 .then(playerAddLiteral)
@@ -74,59 +74,59 @@ public class SelectiumCommand
                                 .then(playerEditLiteral)
 
                                 // /playerRemove <name/UUID>
-                                .then(ClientCommandManager.literal("remove")
-                                        .then(ClientCommandManager.argument("name/UUID", StringArgumentType.word())
+                                .then(ClientCommands.literal("remove")
+                                        .then(ClientCommands.argument("name/UUID", StringArgumentType.word())
                                                 .suggests(PLAYER_LIST_NAMES)
                                                 .executes(ctx -> playerRemove(ctx,
-                                                        validateName(StringArgumentType.getString(ctx, "name/UUID"), configManager.getListNames())))))
+                                                        validateName(StringArgumentType.getString(ctx, "name/UUID"), configManager.getPlayerNameList().keySet())))))
 
-                                .then(ClientCommandManager.literal("nickname")
+                                .then(ClientCommands.literal("nickname")
 
                                         // /playerNicknameAdd <name/UUID> <nickname>
-                                        .then(ClientCommandManager.literal("edit")
-                                                .then(ClientCommandManager.argument("name/UUID", StringArgumentType.word())
+                                        .then(ClientCommands.literal("edit")
+                                                .then(ClientCommands.argument("name/UUID", StringArgumentType.word())
                                                         .suggests(PLAYER_LIST_NAMES)
-                                                        .then(ClientCommandManager.argument("nickname", StringArgumentType.word())
+                                                        .then(ClientCommands.argument("nickname", StringArgumentType.word())
                                                                 .executes(ctx -> playerNicknameSet(ctx,
-                                                                        validateName(StringArgumentType.getString(ctx, "name/UUID"), configManager.getListNames()),
+                                                                        validateName(StringArgumentType.getString(ctx, "name/UUID"), configManager.getPlayerNameList().keySet()),
                                                                         StringArgumentType.getString(ctx, "nickname"))))))
 
                                         // /playerNicknameRemove <name/UUID>
-                                        .then(ClientCommandManager.literal("remove")
-                                                .then(ClientCommandManager.argument("name/UUID", StringArgumentType.word())
+                                        .then(ClientCommands.literal("remove")
+                                                .then(ClientCommands.argument("name/UUID", StringArgumentType.word())
                                                         .suggests(PLAYER_LIST_NAMES)
                                                         .executes(ctx -> playerNicknameSet(ctx,
-                                                                validateName(StringArgumentType.getString(ctx, "name/UUID"), configManager.getListNames()),
+                                                                validateName(StringArgumentType.getString(ctx, "name/UUID"), configManager.getPlayerNameList().keySet()),
                                                                 ""))))
                                 )
 
-                                .then(ClientCommandManager.literal("clearAll")
+                                .then(ClientCommands.literal("clearAll")
                                         .executes(SelectiumCommand::playerClearAll))
 
                                 // /playerToggleInfo
-                                .then(ClientCommandManager.literal("toggleInfo")
+                                .then(ClientCommands.literal("toggleInfo")
                                         .executes(SelectiumCommand::playerToggleInfo))
                         )
 
-                        .then(ClientCommandManager.literal("discord")
+                        .then(ClientCommands.literal("discord")
 
                                 // /discordLink <token>
-                                .then(ClientCommandManager.literal("link")
-                                        .then(ClientCommandManager.argument("token", StringArgumentType.word())
+                                .then(ClientCommands.literal("link")
+                                        .then(ClientCommands.argument("token", StringArgumentType.word())
                                         .executes(ctx -> discordSet(ctx,
                                                 StringArgumentType.getString(ctx, "token")))))
 
                                 // /discordReink
-                                .then(ClientCommandManager.literal("relink")
+                                .then(ClientCommands.literal("relink")
                                         .executes(ctx -> discordSet(ctx, null)))
 
                                 // /discordUnlink
-                                .then(ClientCommandManager.literal("unlink")
+                                .then(ClientCommands.literal("unlink")
                                         .executes(ctx -> discordSet(ctx, ""))))
 
 
                         // /help  (also default)
-                        .then(ClientCommandManager.literal("help")
+                        .then(ClientCommands.literal("help")
                                 .executes(SelectiumCommand::showHelp))
 
                         .executes(SelectiumCommand::showHelp)
@@ -197,9 +197,11 @@ public class SelectiumCommand
                 chatMessage(ctx, ChatFormatting.RED, "commands.selectium-mod.playerRemove.failed", nameOrUUID);
             }
         }
-        catch (Exception e) {
+        catch (Exception e)
+        {
             chatMessage(ctx, ChatFormatting.RED, "commands.selectium-mod.playerRemove.invalid");
         }
+
         return 1;
     }
 
@@ -229,6 +231,7 @@ public class SelectiumCommand
         {
             chatMessage(ctx, ChatFormatting.RED, "commands.selectium-mod.playerNicknameSet.invalid");
         }
+
         return 1;
     }
 
@@ -251,14 +254,14 @@ public class SelectiumCommand
 
     private static int discordSet(CommandContext<FabricClientCommandSource> ctx, String token)
     {
-        WebSocketListener webSocketListener = WebSocketListener.getInstance();
+        DiscordConnection discordConnection = DiscordConnection.getInstance();
 
-        if (webSocketListener.isConnecting())
+        if (discordConnection.isConnecting())
         {
             chatMessage(ctx, ChatFormatting.RED, "commands.selectium-mod.discordSet.connecting");
             return 1;
         }
-        if (webSocketListener.isDisconnecting())
+        if (discordConnection.isDisconnecting())
         {
             chatMessage(ctx, ChatFormatting.RED, "commands.selectium-mod.discordSet.disconnecting");
             return 1;
@@ -266,16 +269,17 @@ public class SelectiumCommand
 
         if (token != null && token.isEmpty())
         {
-            if (!webSocketListener.isConnected())
+            ConfigManager.getInstance().setToken(null);
+
+            if (discordConnection.isDisconnected())
             {
                 chatMessage(ctx, ChatFormatting.RED, "commands.selectium-mod.discordSet.disconnected");
             }
             else
             {
-                ConfigManager.getInstance().setToken("");
                 chatMessage(ctx, ChatFormatting.WHITE, "commands.selectium-mod.discordSet.disconnecting");
 
-                webSocketListener.close()
+                discordConnection.disconnect()
                         .thenAcceptAsync(ws ->
                         {
                             chatMessage(ctx, ChatFormatting.WHITE, "commands.selectium-mod.discordSet.disconnected");
@@ -289,7 +293,7 @@ public class SelectiumCommand
         }
         else
         {
-            if (webSocketListener.isConnected())
+            if (discordConnection.isConnected())
             {
                 chatMessage(ctx, ChatFormatting.RED, "commands.selectium-mod.discordSet.connected");
             }
@@ -298,7 +302,7 @@ public class SelectiumCommand
                 if (token != null) ConfigManager.getInstance().setToken(token);
                 chatMessage(ctx, ChatFormatting.WHITE, "commands.selectium-mod.discordSet.connecting");
 
-                webSocketListener.connect()
+                discordConnection.connect()
                         .thenAcceptAsync(ws ->
                         {
                             chatMessage(ctx, ChatFormatting.WHITE, "commands.selectium-mod.discordSet.connected");
@@ -339,6 +343,7 @@ public class SelectiumCommand
                             .append(Component.translatable(cmd[1]).withStyle(ChatFormatting.GRAY))
             );
         }
+
         return 1;
     }
 

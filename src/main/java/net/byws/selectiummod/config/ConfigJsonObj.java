@@ -40,7 +40,8 @@ public class ConfigJsonObj
         }
     }
 
-    public String token = "";
+    public String token = null; // remove next update
+    public HashMap<UUID, String> tokens = new HashMap<>();
     public HashMap<UUID, PlayerData> playerCatList = null; // remove next update
     public HashMap<UUID, PlayerData> playerList = new HashMap<>();
     public HashMap<String, UUID> playerNameList = new HashMap<>();

@@ -21,10 +21,10 @@ public abstract class PlayerInfoMixin
         if (!configManager.getEnableNameInfo()) return;
 
         PlayerInfo playerInfo = (PlayerInfo)(Object)this;
-        String playerName = playerInfo.getProfile().getName();
+        String playerName = playerInfo.getProfile().name();
         MutableComponent mutableText = Component.empty().append(playerName);
 
-        ConfigJsonObj.PlayerData playerData = configManager.getPlayerData(playerInfo.getProfile().getId());
+        ConfigJsonObj.PlayerData playerData = configManager.getPlayerData(playerInfo.getProfile().id());
         if (playerData == null) playerData = configManager.getPlayerData(playerName);
 
         if (playerData != null)
@@ -32,7 +32,6 @@ public abstract class PlayerInfoMixin
             if (!playerName.equals(playerData.nickname) && !playerData.nickname.isEmpty()) mutableText.append(" (" + playerData.nickname + ")");
             mutableText.withStyle((playerData.clientSide) ? playerData.type.getClientColorFormatting() : playerData.type.getServerColorFormatting());
         }
-
         cir.setReturnValue(mutableText);
     }
 }

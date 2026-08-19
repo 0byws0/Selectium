@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import net.byws.selectiummod.command.SelectiumCommand;
 import net.byws.selectiummod.config.ConfigManager;
-import net.byws.selectiummod.websocket.WebSocketListener;
+import net.byws.selectiummod.websocket.DiscordConnection;
 
 public class SelectiumMod implements ClientModInitializer
 {
@@ -31,19 +31,19 @@ public class SelectiumMod implements ClientModInitializer
 		// Proceed with mild caution.
 
 		ConfigManager.init(LOGGER, GSON);
-		WebSocketListener.init(LOGGER, GSON);
+		DiscordConnection.init(LOGGER, GSON);
 
 		ConfigManager configManager = ConfigManager.getInstance();
-		WebSocketListener webSocketListener = WebSocketListener.getInstance();
+		DiscordConnection discordConnection = DiscordConnection.getInstance();
 
-		webSocketListener.connect();
+		discordConnection.connect();
 
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
 				SelectiumCommand.register(dispatcher));
 
 		ClientTickEvents.START_CLIENT_TICK.register(client ->
 		{
-			webSocketListener.updateWebsocket();
+			discordConnection.updateWebsocket();
 			configManager.updatePlayerData();
 		});
 	}

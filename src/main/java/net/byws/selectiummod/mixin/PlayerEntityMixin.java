@@ -21,22 +21,17 @@ public abstract class PlayerEntityMixin
         if (!configManager.getEnableNameInfo()) return original;
 
         Player player = (Player)(Object)this;
-        String playerName = player.getGameProfile().getName();
-        MutableComponent mutableText = (MutableComponent)original;
+        String playerName = player.getGameProfile().name();
+        MutableComponent mutableText = original.copy();
 
-        ConfigJsonObj.PlayerData playerData = configManager.getPlayerData(player.getGameProfile().getId());
+        ConfigJsonObj.PlayerData playerData = configManager.getPlayerData(player.getGameProfile().id());
         if (playerData == null) playerData = configManager.getPlayerData(playerName);
 
         if (playerData != null)
         {
             if (!playerName.equals(playerData.nickname) && !playerData.nickname.isEmpty()) mutableText.append(" (" + playerData.nickname + ")");
-            mutableText.withStyle((playerData.clientSide) ? playerData.type.getClientColorFormatting() : playerData.type.getServerColorFormatting());
+            return mutableText.withStyle((playerData.clientSide) ? playerData.type.getClientColorFormatting() : playerData.type.getServerColorFormatting());
         }
-        else
-        {
-            mutableText.withStyle(ChatFormatting.WHITE);
-        }
-
-        return mutableText;
+        return mutableText.withStyle(ChatFormatting.WHITE);
     }
 }
