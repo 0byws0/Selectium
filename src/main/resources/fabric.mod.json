@@ -3,7 +3,7 @@
 	"id": "selectium-mod",
 	"version": "${version}",
 	"name": "Selectium Mod",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"description": "A client-side mod that allows customization of player nametag colors, with features for both individual users and organized groups.",
 	"authors": [
 		"Byws"
 	],

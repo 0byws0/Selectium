@@ -36,8 +36,6 @@ public class SelectiumMod implements ClientModInitializer
 		ConfigManager configManager = ConfigManager.getInstance();
 		DiscordConnection discordConnection = DiscordConnection.getInstance();
 
-		discordConnection.connect();
-
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
 				SelectiumCommand.register(dispatcher));
 

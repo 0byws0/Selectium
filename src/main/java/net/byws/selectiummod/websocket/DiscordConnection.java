@@ -25,14 +25,12 @@ public class DiscordConnection
     private class WebSocketSession implements WebSocket.Listener
     {
         private WebSocket socket;
-        private final String userUUID;
         private CompletableFuture<Void> opened, closed;
         private final RateLimiter rateLimiter = RateLimiter.create(10);
         private final StringBuilder messageBuffer = new StringBuilder();
 
-        private WebSocketSession(String clientUUID)
+        private WebSocketSession()
         {
-            this.userUUID = clientUUID;
             this.opened = new CompletableFuture<>();
             this.closed = null;
         }
@@ -93,6 +91,7 @@ public class DiscordConnection
 
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private WebSocketSession activeSession;
+    private String connUUID;
     private long lastPushNanos;
 
     private DiscordConnection(Logger modLogger, Gson gson)
@@ -100,6 +99,7 @@ public class DiscordConnection
         this.logger = modLogger;
         this.gson = gson;
         this.activeSession = null;
+        this.connUUID = "";
     }
 
     public static void init(Logger modLogger, Gson gson)
@@ -126,14 +126,16 @@ public class DiscordConnection
     {
         if (!isDisconnected()) return CompletableFuture.failedFuture(new IllegalStateException("Cannot connect in current state"));
 
+        connUUID = Minecraft.getInstance().getUser().getProfileId().toString();
+
         String token = ConfigManager.getInstance().getToken();
         if (token == null) return CompletableFuture.failedFuture(new IllegalStateException("No discord token"));
 
-        WebSocketSession session = new WebSocketSession(Minecraft.getInstance().getUser().getProfileId().toString());
+        WebSocketSession session = new WebSocketSession();
         activeSession = session;
 
         httpClient.newWebSocketBuilder()
-                .header("uuid", activeSession.userUUID)
+                .header("uuid", connUUID)
                 .header("token", token)
                 .buildAsync(URI.create(DISCORD_WS_URL), session)
                 .whenComplete((webSocket, error) ->
@@ -162,11 +164,14 @@ public class DiscordConnection
 
     public void updateWebsocket()
     {
-        if (!isConnecting()) return;
-
-        if (!Minecraft.getInstance().getUser().getProfileId().toString().equals(activeSession.userUUID))
+        if (!Minecraft.getInstance().getUser().getProfileId().toString().equals(connUUID))
         {
             disconnect();
+            connUUID = "";
+        }
+        if (!isConnected())
+        {
+            if (connUUID.isEmpty()) connect();
             return;
         }
 
@@ -208,12 +213,16 @@ public class DiscordConnection
         if (activeSession != session) return;
 
         activeSession = null;
-        session.socket.abort();
+        if (session.socket != null)
+        {
+            session.socket.abort();
+            connUUID = "";
+        }
 
         session.opened.completeExceptionally(error);
         if (session.closed != null) session.closed.completeExceptionally(error);
 
-        logger.error("Discord websocket failed", error);
+        logger.error("Discord websocket failed: {}", error.getMessage());
     }
 
     private void handleMessage(WebSocketSession session, String jsonMsg)

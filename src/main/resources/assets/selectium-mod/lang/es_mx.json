@@ -25,7 +25,6 @@
   "commands.selectium-mod.discordSet.disconnecting": "Desconectando del servidor de Discord...",
   "commands.selectium-mod.discordSet.connected": "Discord conectado",
   "commands.selectium-mod.discordSet.disconnected": "Discord desconectado",
-  "commands.selectium-mod.discordSet.invalid": "Ya se está conectando a Discord",
 
   "commands.selectium-mod.showHelp.title": "Selectium Mod — Comandos",
   "commands.selectium-mod.showHelp.playerAdd": "Agregar jugador a la lista",
@@ -36,6 +35,5 @@
   "commands.selectium-mod.showHelp.playerClearAll": "Eliminar todos los jugadores de la lista",
   "commands.selectium-mod.showHelp.playerToggleInfo": "Activar o desactivar los colores de los nombres y los apodos de los jugadores",
   "commands.selectium-mod.showHelp.discordLink": "Conectarse al servidor de Discord de Selectium",
-  "commands.selectium-mod.showHelp.discordRelink": "Reconectarse al servidor de Discord de Selectium",
   "commands.selectium-mod.showHelp.discordUnlink": "Desconectarse del servidor de Discord de Selectium"
 }

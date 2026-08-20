@@ -116,13 +116,9 @@ public class SelectiumCommand
                                         .executes(ctx -> discordSet(ctx,
                                                 StringArgumentType.getString(ctx, "token")))))
 
-                                // /discordReink
-                                .then(ClientCommands.literal("relink")
-                                        .executes(ctx -> discordSet(ctx, null)))
-
                                 // /discordUnlink
                                 .then(ClientCommands.literal("unlink")
-                                        .executes(ctx -> discordSet(ctx, ""))))
+                                        .executes(ctx -> discordSet(ctx, null))))
 
 
                         // /help  (also default)
@@ -267,7 +263,7 @@ public class SelectiumCommand
             return 1;
         }
 
-        if (token != null && token.isEmpty())
+        if (token == null)
         {
             ConfigManager.getInstance().setToken(null);
 
@@ -286,7 +282,7 @@ public class SelectiumCommand
                         }, ctx.getSource().getClient()::execute)
                         .exceptionallyAsync(ex ->
                         {
-                            chatMessage(ctx, ChatFormatting.RED, "commands.selectium-mod.discordSet.connected");
+                            chatMessage(ctx, ChatFormatting.RED, "commands.selectium-mod.discordSet.disconnected");
                             return null;
                         }, ctx.getSource().getClient()::execute);
             }
@@ -299,7 +295,7 @@ public class SelectiumCommand
             }
             else
             {
-                if (token != null) ConfigManager.getInstance().setToken(token);
+                ConfigManager.getInstance().setToken(token);
                 chatMessage(ctx, ChatFormatting.WHITE, "commands.selectium-mod.discordSet.connecting");
 
                 discordConnection.connect()
@@ -331,7 +327,6 @@ public class SelectiumCommand
                 {"/selectium player clearAll", "commands.selectium-mod.showHelp.playerClearAll"},
                 {"/selectium player toggleInfo", "commands.selectium-mod.showHelp.playerToggleInfo"},
                 {"/selectium discord link <token>", "commands.selectium-mod.showHelp.discordLink"},
-                {"/selectium discord relink", "commands.selectium-mod.showHelp.discordRelink"},
                 {"/selectium discord unlink", "commands.selectium-mod.showHelp.discordUnlink"},
         };
 
