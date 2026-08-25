@@ -12,7 +12,7 @@ import net.byws.selectiummod.config.ConfigJsonObj;
 import net.byws.selectiummod.config.ConfigManager;
 
 @Mixin(Player.class)
-public abstract class PlayerEntityMixin
+public abstract class PlayerMixin
 {
     @ModifyReturnValue(method = "getDisplayName", at = @At("RETURN"))
     private Component overrideNameColor(Component original)
@@ -21,17 +21,28 @@ public abstract class PlayerEntityMixin
         if (!configManager.getEnableNameInfo()) return original;
 
         Player player = (Player)(Object)this;
-        String playerName = player.getGameProfile().name();
+        String playerName = player.getGameProfile().getName();
         MutableComponent mutableText = original.copy();
 
-        ConfigJsonObj.PlayerData playerData = configManager.getPlayerData(player.getGameProfile().id());
+        ConfigJsonObj.PlayerData playerData = configManager.getPlayerData(player.getGameProfile().getId());
         if (playerData == null) playerData = configManager.getPlayerData(playerName);
+
+        mutableText.withStyle(ChatFormatting.WHITE);
 
         if (playerData != null)
         {
             if (!playerName.equals(playerData.nickname) && !playerData.nickname.isEmpty()) mutableText.append(" (" + playerData.nickname + ")");
-            return mutableText.withStyle((playerData.clientSide) ? playerData.type.getClientColorFormatting() : playerData.type.getServerColorFormatting());
+            if (playerData.clientType != null && !playerData.clientType.equals(playerData.serverType))
+            {
+                mutableText.withStyle(playerData.clientType.CLIENT_COLOR_FORMAT);
+            }
+            else if (playerData.serverType != null)
+            {
+                mutableText.withStyle(playerData.serverType.SERVER_COLOR_FORMAT);
+            }
+            // mutableText.withStyle(ChatFormatting.BOLD);
         }
-        return mutableText.withStyle(ChatFormatting.WHITE);
+
+        return mutableText;
     }
 }

@@ -53,15 +53,28 @@ public class ConfigManager
             ConfigJsonObj loaded = gson.fromJson(Files.readString(CONFIG_PATH), ConfigJsonObj.class);
             if (loaded != null) config = loaded;
 
+            if (config.playerCatList != null) // remove next update
+            {
+                config.playerList = config.playerCatList;
+                config.playerCatList = null;
+            }
             if (config.token != null) // remove next update
             {
                 config.tokens.put(Minecraft.getInstance().getUser().getProfileId(), config.token);
                 config.token = null;
             }
-            if (config.playerCatList != null) // remove next update
+            for (ConfigJsonObj.PlayerData playerData : config.playerList.values())
             {
-                config.playerList = config.playerCatList;
-                config.playerCatList = null;
+                if (playerData.type == null) continue;
+                if (playerData.clientSide)
+                {
+                    playerData.clientType = playerData.type;
+                }
+                else
+                {
+                    playerData.serverType = playerData.type;
+                }
+                playerData.type = null;
             }
         }
         catch (IOException e)
@@ -105,8 +118,8 @@ public class ConfigManager
 
         for (var playerInfo : connection.getOnlinePlayers())
         {
-            UUID playerUUID = playerInfo.getProfile().id();
-            String playerName = playerInfo.getProfile().name();
+            UUID playerUUID = playerInfo.getProfile().getId();
+            String playerName = playerInfo.getProfile().getName();
             onlinePlayers.put(playerName, playerUUID);
             ConfigJsonObj.PlayerData player = config.playerList.get(playerUUID);
 
@@ -135,48 +148,59 @@ public class ConfigManager
     public boolean addListPlayer(UUID playerUUID, boolean clientSide, ConfigJsonObj.Category type, String nickname)
     {
         if (playerUUID != null && config.playerList.putIfAbsent(playerUUID,
-                new ConfigJsonObj.PlayerData(clientSide, type, (nickname == null) ? "" : nickname)) == null)
+                new ConfigJsonObj.PlayerData((clientSide) ? type : null, (clientSide) ? null : type, (nickname == null) ? "" : nickname)) == null)
         {
             requiresSave = true;
             return true;
         }
+
         return false;
     }
 
-    public boolean editListPlayer(String playerName, Boolean clientSide, ConfigJsonObj.Category type, String nickname)
+    public boolean editListPlayer(String playerName, boolean clientSide, ConfigJsonObj.Category type, String nickname)
     {
         return editListPlayer(config.playerNameList.get(playerName), clientSide, type, nickname);
     }
 
-    public boolean editListPlayer(UUID playerUUID, Boolean clientSide, ConfigJsonObj.Category type, String nickname)
+    public boolean editListPlayer(UUID playerUUID, boolean clientSide, ConfigJsonObj.Category type, String nickname)
     {
         ConfigJsonObj.PlayerData player = config.playerList.get(playerUUID);
-        if (player != null)
+        if (player == null) return false;
+
+        if (type != null)
         {
-            if (clientSide != null) player.clientSide = clientSide;
-            if (type != null) player.type = type;
-            if (nickname != null) player.nickname = nickname;
-            requiresSave = true;
-            return true;
+            if (clientSide) player.clientType = type;
+            else player.serverType = type;
         }
-        return false;
+        if (nickname != null) player.nickname = nickname;
+        requiresSave = true;
+
+        return true;
     }
 
-    public boolean removeListPlayer(String playerName) { return removeListPlayer(config.playerNameList.get(playerName)); }
+    public boolean removeListPlayer(String playerName, boolean clientSide) { return removeListPlayer(config.playerNameList.get(playerName), clientSide); }
 
-    public boolean removeListPlayer(UUID playerUUID)
+    public boolean removeListPlayer(UUID playerUUID, boolean clientSide)
     {
-        if (config.playerList.remove(playerUUID) != null | config.playerNameList.values().remove(playerUUID))
+        ConfigJsonObj.PlayerData player = config.playerList.get(playerUUID);
+        if (player == null) return false;
+
+        if (clientSide) player.clientType = null;
+        else player.serverType = null;
+
+        if (player.clientType == null && player.serverType == null)
         {
+            config.playerList.remove(playerUUID);
+            config.playerNameList.values().remove(playerUUID);
             requiresSave = true;
-            return true;
         }
-        return false;
+
+        return true;
     }
 
-    public void clearList()
+    public void clearList(boolean clientSide)
     {
-        config.playerList.clear();
+        getPlayerList().forEach((playerUUID, playerData) -> removeListPlayer(playerUUID, clientSide));
         config.playerNameList.clear();
         requiresSave = true;
     }

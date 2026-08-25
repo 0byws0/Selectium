@@ -1,5 +1,6 @@
 package net.byws.selectiummod.mixin;
 
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -21,17 +22,26 @@ public abstract class PlayerInfoMixin
         if (!configManager.getEnableNameInfo()) return;
 
         PlayerInfo playerInfo = (PlayerInfo)(Object)this;
-        String playerName = playerInfo.getProfile().name();
+        String playerName = playerInfo.getProfile().getName();
         MutableComponent mutableText = Component.empty().append(playerName);
 
-        ConfigJsonObj.PlayerData playerData = configManager.getPlayerData(playerInfo.getProfile().id());
+        ConfigJsonObj.PlayerData playerData = configManager.getPlayerData(playerInfo.getProfile().getId());
         if (playerData == null) playerData = configManager.getPlayerData(playerName);
 
         if (playerData != null)
         {
             if (!playerName.equals(playerData.nickname) && !playerData.nickname.isEmpty()) mutableText.append(" (" + playerData.nickname + ")");
-            mutableText.withStyle((playerData.clientSide) ? playerData.type.getClientColorFormatting() : playerData.type.getServerColorFormatting());
+            if (playerData.clientType != null && !playerData.clientType.equals(playerData.serverType))
+            {
+                mutableText.withStyle(playerData.clientType.CLIENT_COLOR_FORMAT);
+            }
+            else if (playerData.serverType != null)
+            {
+                mutableText.withStyle(playerData.serverType.SERVER_COLOR_FORMAT);
+            }
+            // mutableText.withStyle(ChatFormatting.BOLD);
         }
+
         cir.setReturnValue(mutableText);
     }
 }

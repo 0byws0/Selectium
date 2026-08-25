@@ -1,6 +1,6 @@
 plugins {
-	// id 'net.fabricmc.fabric-loom-remap' version "${loom_version}" // 1.21 - 1.21.10
-	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+	id 'net.fabricmc.fabric-loom-remap' version "${loom_version}" // 1.21 - 1.21.11
+	// id 'net.fabricmc.fabric-loom' version "${loom_version}" // 26.1
 	id 'maven-publish'
 }
 
@@ -22,13 +22,13 @@ repositories {
 dependencies {
 	// To change the versions see the gradle.properties file
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	// mappings loom.officialMojangMappings() // 1.21-1.21.11
-	// modImplementation "net.fabricmc:fabric-loader:${project.loader_version}" // 1.21 - 1.21.10
-	implementation "net.fabricmc:fabric-loader:${project.loader_version}" // 26.1
+	mappings loom.officialMojangMappings() // 1.21-1.21.11
+	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}" // 1.21 - 1.21.11
+	// implementation "net.fabricmc:fabric-loader:${project.loader_version}" // 26.1
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
-	// modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}" // 1.21 - 1.21.10
-	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}" // 26.1
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}" // 1.21 - 1.21.11
+	// implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}" // 26.1
 
 	
 }
@@ -42,8 +42,8 @@ processResources {
 }
 
 tasks.withType(JavaCompile).configureEach {
-	// it.options.release = 21 // 1.21 - 1.21.10
-	it.options.release = 25 // 26.1
+	it.options.release = 21 // 1.21 - 1.21.11
+	// it.options.release = 25 // 26.1
 }
 
 java {
@@ -52,10 +52,10 @@ java {
 	// If you remove this line, sources will not be generated.
 	withSourcesJar()
 
-	// sourceCompatibility = JavaVersion.VERSION_21 // 1.21 - 1.21.10
-	// targetCompatibility = JavaVersion.VERSION_21 // 1.21 - 1.21.10
-	sourceCompatibility = JavaVersion.VERSION_25 // 26.1
-	targetCompatibility = JavaVersion.VERSION_25 // 26.1
+	sourceCompatibility = JavaVersion.VERSION_21 // 1.21 - 1.21.11
+	targetCompatibility = JavaVersion.VERSION_21 // 1.21 - 1.21.11
+//	sourceCompatibility = JavaVersion.VERSION_25 // 26.1
+//	targetCompatibility = JavaVersion.VERSION_25 // 26.1
 }
 
 jar {

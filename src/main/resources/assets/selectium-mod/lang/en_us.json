@@ -1,20 +1,20 @@
 {
   "commands.selectium-mod.playerAdd.added": "%1$s added to list as %2$s",
   "commands.selectium-mod.playerAdd.failed": "%1$s is already in list",
-  "commands.selectium-mod.playerAdd.invalid": "Invalid UUID",
+  "commands.selectium-mod.playerAdd.invalid": "Invalid UUID or already in list",
 
   "commands.selectium-mod.playerEdit.edited": "%1$s changed to %2$s",
   "commands.selectium-mod.playerEdit.failed": "%1$s is not in list",
-  "commands.selectium-mod.playerEdit.invalid": "Invalid UUID",
+  "commands.selectium-mod.playerEdit.invalid": "Invalid UUID or not in list",
 
   "commands.selectium-mod.playerRemove.removed": "%1$s removed from list",
   "commands.selectium-mod.playerRemove.failed": "%1$s is not in list",
-  "commands.selectium-mod.playerRemove.invalid": "Invalid UUID",
+  "commands.selectium-mod.playerRemove.invalid": "Invalid UUID or not in list",
 
   "commands.selectium-mod.playerNicknameSet.edited": "%1$s nickname set to %2$s",
   "commands.selectium-mod.playerNicknameSet.removed": "%1$s nickname removed",
   "commands.selectium-mod.playerNicknameSet.failed": "%1$s is not in list",
-  "commands.selectium-mod.playerNicknameSet.invalid": "Invalid UUID",
+  "commands.selectium-mod.playerNicknameSet.invalid": "Invalid UUID or not in list",
 
   "commands.selectium-mod.playerClearAll": "Player list cleared",
 
@@ -27,13 +27,13 @@
   "commands.selectium-mod.discordSet.disconnected": "Discord disconnected",
 
   "commands.selectium-mod.showHelp.title": "Selectium Mod — Commands",
-  "commands.selectium-mod.showHelp.playerAdd": "Add player on list",
-  "commands.selectium-mod.showHelp.playerEdit": "Replace player on list",
+  "commands.selectium-mod.showHelp.playerAdd": "Add player to list",
+  "commands.selectium-mod.showHelp.playerEdit": "Replace player from list",
   "commands.selectium-mod.showHelp.playerRemove": "Remove player from list",
   "commands.selectium-mod.showHelp.playerNicknameEdit": "Add or replace nickname of player on list",
   "commands.selectium-mod.showHelp.playerNicknameRemove": "Remove nickname of player on list",
-  "commands.selectium-mod.showHelp.playerClearAll": "Removed all players from list",
+  "commands.selectium-mod.showHelp.playerClearAll": "Remove all user added players from list",
   "commands.selectium-mod.showHelp.playerToggleInfo": "Enable or disable player name colors and nicknames",
   "commands.selectium-mod.showHelp.discordLink": "Connect to Selectium discord server",
-  "commands.selectium-mod.showHelp.discordUnlink": "Disconnect to Selectium discord server"
+  "commands.selectium-mod.showHelp.discordUnlink": "Disconnect from Selectium discord server and remove all server players from list"
 }

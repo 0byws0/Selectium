@@ -83,7 +83,7 @@ public class DiscordConnection
     }
 
     private static final String DISCORD_WS_URL = "wss://bywsdomain.xyz/ws";
-    private static final long WS_UPDATE_INTERVAL = 90000000000L;
+    private static final long WS_UPDATE_INTERVAL = 80000000000L;
 
     private static DiscordConnection instance;
     private final Logger logger;
@@ -126,7 +126,7 @@ public class DiscordConnection
     {
         if (!isDisconnected()) return CompletableFuture.failedFuture(new IllegalStateException("Cannot connect in current state"));
 
-        connUUID = Minecraft.getInstance().getUser().getProfileId().toString();
+        connUUID = "0422ee86-9842-43dd-8fd7-3665aeb87552"; //Minecraft.getInstance().getUser().getProfileId().toString()
 
         String token = ConfigManager.getInstance().getToken();
         if (token == null) return CompletableFuture.failedFuture(new IllegalStateException("No discord token"));
@@ -166,8 +166,8 @@ public class DiscordConnection
     {
         if (!Minecraft.getInstance().getUser().getProfileId().toString().equals(connUUID))
         {
-            disconnect();
-            connUUID = "";
+//            disconnect();
+//            connUUID = "";
         }
         if (!isConnected())
         {
@@ -258,7 +258,7 @@ public class DiscordConnection
             for (var playerEntry : clientPlayerList.entrySet())
             {
                 UUID playerUUID = playerEntry.getKey();
-                if (!playerEntry.getValue().clientSide && !serverPlayerList.containsKey(playerUUID)) configManager.removeListPlayer(playerUUID);
+                if (!serverPlayerList.containsKey(playerUUID)) configManager.removeListPlayer(playerUUID, false);
             }
         }
 
@@ -268,11 +268,11 @@ public class DiscordConnection
 
             if (existingPlayer == null)
             {
-                configManager.addListPlayer(playerUUID, updatedPlayer.clientSide, updatedPlayer.type, updatedPlayer.nickname);
+                configManager.addListPlayer(playerUUID, false, updatedPlayer.type, updatedPlayer.nickname); // updatedPlayer.serverType
             }
-            else if (!existingPlayer.clientSide)
+            else
             {
-                configManager.editListPlayer(playerUUID, updatedPlayer.clientSide, updatedPlayer.type, updatedPlayer.nickname);
+                configManager.editListPlayer(playerUUID, false, updatedPlayer.type, updatedPlayer.nickname); // updatedPlayer.serverType
             }
         });
     }
@@ -287,7 +287,7 @@ public class DiscordConnection
         serverPlayerList.forEach((playerUUID, updatedPlayer) ->
         {
             ConfigJsonObj.PlayerData existingPlayer = clientPlayerList.get(playerUUID);
-            if (existingPlayer != null && !existingPlayer.clientSide) configManager.removeListPlayer(playerUUID);
+            if (existingPlayer != null) configManager.removeListPlayer(playerUUID, false);
         });
     }
 }

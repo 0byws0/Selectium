@@ -1,9 +1,9 @@
 {
 	"required": true,
 	"package": "net.byws.selectiummod.mixin",
-	"compatibilityLevel": "JAVA_25",
+	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"PlayerEntityMixin",
+		"PlayerMixin",
 		"PlayerInfoMixin"
 	],
 	"injectors": {
