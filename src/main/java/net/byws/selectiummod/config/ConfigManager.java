@@ -15,6 +15,7 @@ import java.util.UUID;
 public class ConfigManager
 {
     private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("config-selectium-mod.json");
+
     private static ConfigManager instance;
     private final Logger logger;
     private final Gson gson;
@@ -63,17 +64,12 @@ public class ConfigManager
                 config.tokens.put(Minecraft.getInstance().getUser().getProfileId(), config.token);
                 config.token = null;
             }
-            for (ConfigJsonObj.PlayerData playerData : config.playerList.values())
+            for (ConfigJsonObj.PlayerData playerData : config.playerList.values()) // remove next update
             {
+                if (playerData.group == null) playerData.group = "";
                 if (playerData.type == null) continue;
-                if (playerData.clientSide)
-                {
-                    playerData.clientType = playerData.type;
-                }
-                else
-                {
-                    playerData.serverType = playerData.type;
-                }
+                if (playerData.clientSide) playerData.clientType = playerData.type;
+                else playerData.serverType = playerData.type;
                 playerData.type = null;
             }
         }
@@ -95,9 +91,9 @@ public class ConfigManager
         }
     }
 
-    public Map<UUID, ConfigJsonObj.PlayerData> getPlayerList() { return new HashMap<>(config.playerList); }
-
     public Map<String, UUID> getOnlinePlayers() { return new HashMap<>(onlinePlayers); }
+
+    public Map<UUID, ConfigJsonObj.PlayerData> getPlayerList() { return new HashMap<>(config.playerList); }
 
     public Map<String, UUID> getPlayerNameList() { return new HashMap<>(config.playerNameList); }
 
@@ -105,7 +101,13 @@ public class ConfigManager
 
     public ConfigJsonObj.PlayerData getPlayerData(UUID playerUUID) { return config.playerList.get(playerUUID); }
 
-    public boolean getEnableNameInfo() { return config.enableNameColor; }
+    public int getKills(boolean clientSide) { return (clientSide) ? config.clientKills : config.serverKills; }
+
+    public boolean getEnableGroupInfo() { return config.enableGroupInfo; }
+
+    public boolean getEnableNicknameInfo() { return config.enableNicknameInfo; }
+
+    public boolean getEnableInfo() { return config.enableInfo; }
 
     public String getToken() { return config.tokens.get(Minecraft.getInstance().getUser().getProfileId()); }
 
@@ -145,10 +147,11 @@ public class ConfigManager
         requiresSave = false;
     }
 
-    public boolean addListPlayer(UUID playerUUID, boolean clientSide, ConfigJsonObj.Category type, String nickname)
+    public boolean addListPlayer(UUID playerUUID, boolean clientSide, ConfigJsonObj.Category type, String group, String nickname)
     {
         if (playerUUID != null && config.playerList.putIfAbsent(playerUUID,
-                new ConfigJsonObj.PlayerData((clientSide) ? type : null, (clientSide) ? null : type, (nickname == null) ? "" : nickname)) == null)
+                new ConfigJsonObj.PlayerData((clientSide) ? type : null, (clientSide) ? null : type,
+                        (group == null) ? "" : group, (nickname == null) ? "" : nickname)) == null)
         {
             requiresSave = true;
             return true;
@@ -157,12 +160,12 @@ public class ConfigManager
         return false;
     }
 
-    public boolean editListPlayer(String playerName, boolean clientSide, ConfigJsonObj.Category type, String nickname)
+    public boolean editListPlayer(String playerName, boolean clientSide, ConfigJsonObj.Category type, String group, String nickname)
     {
-        return editListPlayer(config.playerNameList.get(playerName), clientSide, type, nickname);
+        return editListPlayer(config.playerNameList.get(playerName), clientSide, type, group ,nickname);
     }
 
-    public boolean editListPlayer(UUID playerUUID, boolean clientSide, ConfigJsonObj.Category type, String nickname)
+    public boolean editListPlayer(UUID playerUUID, boolean clientSide, ConfigJsonObj.Category type, String group, String nickname)
     {
         ConfigJsonObj.PlayerData player = config.playerList.get(playerUUID);
         if (player == null) return false;
@@ -172,6 +175,7 @@ public class ConfigManager
             if (clientSide) player.clientType = type;
             else player.serverType = type;
         }
+        if (group != null) player.group = group;
         if (nickname != null) player.nickname = nickname;
         requiresSave = true;
 
@@ -205,9 +209,35 @@ public class ConfigManager
         requiresSave = true;
     }
 
-    public void setEnableNameInfo(boolean enable)
+    public boolean addKill(String playerName) { return addKill(config.playerNameList.get(playerName)); }
+
+    public boolean addKill(UUID playerUUID)
     {
-        config.enableNameColor = enable;
+        ConfigJsonObj.PlayerData player = config.playerList.get(playerUUID);
+        if (player == null) return false;
+
+        if (ConfigJsonObj.Category.TARGET.equals(player.clientType)) ++config.clientKills;
+        if (ConfigJsonObj.Category.TARGET.equals(player.serverType)) ++config.serverKills;
+        requiresSave = true;
+
+        return true;
+    }
+
+    public void setEnableGroupInfo(boolean enable)
+    {
+        config.enableGroupInfo = enable;
+        requiresSave = true;
+    }
+
+    public void setEnableNicknameInfo(boolean enable)
+    {
+        config.enableNicknameInfo = enable;
+        requiresSave = true;
+    }
+
+    public void setEnableInfo(boolean enable)
+    {
+        config.enableInfo = enable;
         requiresSave = true;
     }
 

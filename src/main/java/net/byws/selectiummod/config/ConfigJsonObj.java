@@ -28,12 +28,14 @@ public class ConfigJsonObj
         public Category type; // remove next update
         public Category clientType;
         public Category serverType;
+        public String group;
         public String nickname;
 
-        public PlayerData(Category clientType, Category serverType, String nickname)
+        public PlayerData(Category clientType, Category serverType, String group, String nickname)
         {
             this.clientType = clientType;
             this.serverType = serverType;
+            this.group = group;
             this.nickname = nickname;
         }
     }
@@ -43,5 +45,9 @@ public class ConfigJsonObj
     public HashMap<UUID, PlayerData> playerCatList = null; // remove next update
     public HashMap<UUID, PlayerData> playerList = new HashMap<>();
     public HashMap<String, UUID> playerNameList = new HashMap<>();
-    public boolean enableNameColor = true;
+    public int clientKills = 0;
+    public int serverKills = 0;
+    public boolean enableGroupInfo = true;
+    public boolean enableNicknameInfo = true;
+    public boolean enableInfo = true;
 }

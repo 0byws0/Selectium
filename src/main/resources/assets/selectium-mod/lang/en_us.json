@@ -11,12 +11,23 @@
   "commands.selectium-mod.playerRemove.failed": "%1$s is not in list",
   "commands.selectium-mod.playerRemove.invalid": "Invalid UUID or not in list",
 
+  "commands.selectium-mod.playerGroupSet.edited": "%1$s group set to %2$s",
+  "commands.selectium-mod.playerGroupSet.removed": "%1$s group removed",
+  "commands.selectium-mod.playerGroupSet.failed": "%1$s is not in list",
+  "commands.selectium-mod.playerGroupSet.invalid": "Invalid UUID or not in list",
+
   "commands.selectium-mod.playerNicknameSet.edited": "%1$s nickname set to %2$s",
   "commands.selectium-mod.playerNicknameSet.removed": "%1$s nickname removed",
   "commands.selectium-mod.playerNicknameSet.failed": "%1$s is not in list",
   "commands.selectium-mod.playerNicknameSet.invalid": "Invalid UUID or not in list",
 
   "commands.selectium-mod.playerClearAll": "Player list cleared",
+
+  "commands.selectium-mod.playerGroupToggleInfo.enable": "Player group information shown",
+  "commands.selectium-mod.playerGroupToggleInfo.disable": "Player group information hidden",
+
+  "commands.selectium-mod.playerNicknameToggleInfo.enable": "Player nickname information shown",
+  "commands.selectium-mod.playerNicknameToggleInfo.disable": "Player nickname information hidden",
 
   "commands.selectium-mod.playerToggleInfo.enable": "Player name information shown",
   "commands.selectium-mod.playerToggleInfo.disable": "Player name information hidden",

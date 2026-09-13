@@ -4,12 +4,14 @@ import com.google.gson.Gson;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import net.byws.selectiummod.command.SelectiumCommand;
 import net.byws.selectiummod.config.ConfigManager;
 import net.byws.selectiummod.websocket.DiscordConnection;
+import net.byws.selectiummod.config.KillTracker;
 
 public class SelectiumMod implements ClientModInitializer
 {
@@ -38,6 +40,11 @@ public class SelectiumMod implements ClientModInitializer
 
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
 				SelectiumCommand.register(dispatcher));
+
+		ClientReceiveMessageEvents.GAME.register((component, overlay) ->
+		{
+			if (!overlay) KillTracker.update(component.getString());
+		});
 
 		ClientTickEvents.START_CLIENT_TICK.register(client ->
 		{

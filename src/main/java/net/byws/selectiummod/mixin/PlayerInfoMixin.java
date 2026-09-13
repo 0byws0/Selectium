@@ -1,6 +1,5 @@
 package net.byws.selectiummod.mixin;
 
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -12,14 +11,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import net.byws.selectiummod.config.ConfigJsonObj;
 import net.byws.selectiummod.config.ConfigManager;
 
-@Mixin(PlayerInfo.class)
+@Mixin(PlayerInfo.class) // value = PlayerInfo.class, priority = 9999
 public abstract class PlayerInfoMixin
 {
     @Inject(method = "getTabListDisplayName", at = @At("HEAD"), cancellable = true)
     private void overrideNameColor(CallbackInfoReturnable<Component> cir)
     {
         ConfigManager configManager = ConfigManager.getInstance();
-        if (!configManager.getEnableNameInfo()) return;
+        if (!configManager.getEnableInfo()) return;
 
         PlayerInfo playerInfo = (PlayerInfo)(Object)this;
         String playerName = playerInfo.getProfile().getName();
@@ -30,7 +29,14 @@ public abstract class PlayerInfoMixin
 
         if (playerData != null)
         {
-            if (!playerName.equals(playerData.nickname) && !playerData.nickname.isEmpty()) mutableText.append(" (" + playerData.nickname + ")");
+            if (configManager.getEnableGroupInfo() && !playerData.group.isEmpty())
+            {
+                mutableText = Component.literal("[" + playerData.group + "] ").append(mutableText);
+            }
+            if (configManager.getEnableNicknameInfo() && !playerName.equals(playerData.nickname) && !playerData.nickname.isEmpty())
+            {
+                mutableText.append(" (" + playerData.nickname + ")");
+            }
             if (playerData.clientType != null && !playerData.clientType.equals(playerData.serverType))
             {
                 mutableText.withStyle(playerData.clientType.CLIENT_COLOR_FORMAT);

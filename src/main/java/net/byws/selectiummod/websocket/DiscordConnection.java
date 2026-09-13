@@ -56,7 +56,7 @@ public class DiscordConnection
         @Override
         public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last)
         {
-            if (messageBuffer.length() + data.length() > 500000)
+            if (messageBuffer.length() + data.length() > MAX_MSG_SIZE)
             {
                 Minecraft.getInstance().execute(() ->
                         handleFailure(this, new IllegalStateException("WebSocket message exceeded the size limit")));
@@ -83,6 +83,7 @@ public class DiscordConnection
     }
 
     private static final String DISCORD_WS_URL = "wss://bywsdomain.xyz/ws";
+    private static final int MAX_MSG_SIZE = 500000;
     private static final long WS_UPDATE_INTERVAL = 80000000000L;
 
     private static DiscordConnection instance;
@@ -126,7 +127,7 @@ public class DiscordConnection
     {
         if (!isDisconnected()) return CompletableFuture.failedFuture(new IllegalStateException("Cannot connect in current state"));
 
-        connUUID = "0422ee86-9842-43dd-8fd7-3665aeb87552"; //Minecraft.getInstance().getUser().getProfileId().toString()
+        connUUID = Minecraft.getInstance().getUser().getProfileId().toString();
 
         String token = ConfigManager.getInstance().getToken();
         if (token == null) return CompletableFuture.failedFuture(new IllegalStateException("No discord token"));
@@ -166,8 +167,8 @@ public class DiscordConnection
     {
         if (!Minecraft.getInstance().getUser().getProfileId().toString().equals(connUUID))
         {
-//            disconnect();
-//            connUUID = "";
+            disconnect();
+            connUUID = "";
         }
         if (!isConnected())
         {
@@ -268,11 +269,11 @@ public class DiscordConnection
 
             if (existingPlayer == null)
             {
-                configManager.addListPlayer(playerUUID, false, updatedPlayer.type, updatedPlayer.nickname); // updatedPlayer.serverType
+                configManager.addListPlayer(playerUUID, false, updatedPlayer.type, updatedPlayer.group, updatedPlayer.nickname); // updatedPlayer.serverType
             }
             else
             {
-                configManager.editListPlayer(playerUUID, false, updatedPlayer.type, updatedPlayer.nickname); // updatedPlayer.serverType
+                configManager.editListPlayer(playerUUID, false, updatedPlayer.type, updatedPlayer.group, updatedPlayer.nickname); // updatedPlayer.serverType
             }
         });
     }
