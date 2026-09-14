@@ -95,9 +95,9 @@ public class SelectiumCommand
                                                                 validateName(StringArgumentType.getString(ctx, "name/UUID"), configManager.getPlayerNameList().keySet()),
                                                                 ""))))
 
-                                        // /playerGroupToggleInfo
-                                        .then(ClientCommandManager.literal("toggleInfo")
-                                                .executes(SelectiumCommand::playerGroupToggleInfo))
+                                        // /playerGroupToggle
+                                        .then(ClientCommandManager.literal("toggle")
+                                                .executes(SelectiumCommand::playerGroupToggle))
                                 )
 
                                 .then(ClientCommandManager.literal("nickname")
@@ -119,17 +119,17 @@ public class SelectiumCommand
                                                                 validateName(StringArgumentType.getString(ctx, "name/UUID"), configManager.getPlayerNameList().keySet()),
                                                                 ""))))
 
-                                        // /playerNicknameToggleInfo
-                                        .then(ClientCommandManager.literal("toggleInfo")
-                                                .executes(SelectiumCommand::playerNicknameToggleInfo))
+                                        // /playerNicknameToggle
+                                        .then(ClientCommandManager.literal("toggle")
+                                                .executes(SelectiumCommand::playerNicknameToggle))
                                 )
 
-                                .then(ClientCommandManager.literal("clearAll")
-                                        .executes(SelectiumCommand::playerClearAll))
+                                .then(ClientCommandManager.literal("clear")
+                                        .executes(SelectiumCommand::playerClear))
 
-                                // /playerToggleInfo
-                                .then(ClientCommandManager.literal("toggleInfo")
-                                        .executes(SelectiumCommand::playerToggleInfo))
+                                // /playerToggle
+                                .then(ClientCommandManager.literal("toggle")
+                                        .executes(SelectiumCommand::playerToggle))
                         )
 
                         .then(ClientCommandManager.literal("discord")
@@ -144,6 +144,9 @@ public class SelectiumCommand
                                 .then(ClientCommandManager.literal("unlink")
                                         .executes(ctx -> discordSet(ctx, null)))
                         )
+
+                        .then(ClientCommandManager.literal("stats")
+                                .executes(SelectiumCommand::showStats))
 
                         // /help  (also default)
                         .then(ClientCommandManager.literal("help")
@@ -249,6 +252,16 @@ public class SelectiumCommand
         return 1;
     }
 
+    private static int playerGroupToggle(CommandContext<FabricClientCommandSource> ctx)
+    {
+        ConfigManager configManager = ConfigManager.getInstance();
+
+        configManager.setEnableGroupInfo(!configManager.getEnableGroupInfo());
+        chatMessage(ctx, ChatFormatting.GRAY, configManager.getEnableGroupInfo() ?
+                "commands.selectium-mod.playerGroupToggle.enable" : "commands.selectium-mod.playerGroupToggle.disable");
+        return 1;
+    }
+
     public static int playerNicknameSet(CommandContext<FabricClientCommandSource> ctx, String nameOrUUID, String nickname)
     {
         ConfigManager configManager = ConfigManager.getInstance();
@@ -274,40 +287,30 @@ public class SelectiumCommand
         return 1;
     }
 
-    private static int playerClearAll(CommandContext<FabricClientCommandSource> ctx)
-    {
-        ConfigManager.getInstance().clearList(true);
-        chatMessage(ctx, ChatFormatting.GRAY, "commands.selectium-mod.playerClearAll");
-        return 1;
-    }
-
-    private static int playerGroupToggleInfo(CommandContext<FabricClientCommandSource> ctx)
-    {
-        ConfigManager configManager = ConfigManager.getInstance();
-
-        configManager.setEnableGroupInfo(!configManager.getEnableGroupInfo());
-        chatMessage(ctx, ChatFormatting.GRAY, configManager.getEnableGroupInfo() ?
-                "commands.selectium-mod.playerGroupToggleInfo.enable" : "commands.selectium-mod.playerGroupToggleInfo.disable");
-        return 1;
-    }
-
-    private static int playerNicknameToggleInfo(CommandContext<FabricClientCommandSource> ctx)
+    private static int playerNicknameToggle(CommandContext<FabricClientCommandSource> ctx)
     {
         ConfigManager configManager = ConfigManager.getInstance();
 
         configManager.setEnableNicknameInfo(!configManager.getEnableNicknameInfo());
         chatMessage(ctx, ChatFormatting.GRAY, configManager.getEnableNicknameInfo() ?
-                "commands.selectium-mod.playerNicknameToggleInfo.enable" : "commands.selectium-mod.playerNicknameToggleInfo.disable");
+                "commands.selectium-mod.playerNicknameToggle.enable" : "commands.selectium-mod.playerNicknameToggle.disable");
         return 1;
     }
 
-    private static int playerToggleInfo(CommandContext<FabricClientCommandSource> ctx)
+    private static int playerClear(CommandContext<FabricClientCommandSource> ctx)
+    {
+        ConfigManager.getInstance().clearList(true);
+        chatMessage(ctx, ChatFormatting.GRAY, "commands.selectium-mod.playerClear");
+        return 1;
+    }
+
+    private static int playerToggle(CommandContext<FabricClientCommandSource> ctx)
     {
         ConfigManager configManager = ConfigManager.getInstance();
 
         configManager.setEnableInfo(!configManager.getEnableInfo());
         chatMessage(ctx, ChatFormatting.GRAY, configManager.getEnableInfo() ?
-                "commands.selectium-mod.playerToggleInfo.enable" : "commands.selectium-mod.playerToggleInfo.disable");
+                "commands.selectium-mod.playerToggle.enable" : "commands.selectium-mod.playerToggle.disable");
         return 1;
     }
 
@@ -372,6 +375,26 @@ public class SelectiumCommand
         return 1;
     }
 
+    private static int showStats(CommandContext<FabricClientCommandSource> ctx)
+    {
+        ConfigManager configManager = ConfigManager.getInstance();
+        chatHeader(ctx, ChatFormatting.YELLOW,"commands.selectium-mod.showStats.title");
+
+        ctx.getSource().sendFeedback(
+                Component.literal("  ")
+                        .append(Component.translatable("commands.selectium-mod.showStats.clientKills").withStyle(ChatFormatting.RED))
+                        .append(Component.literal(": " + configManager.getKills(true)).withStyle(ChatFormatting.GRAY))
+        );
+
+        ctx.getSource().sendFeedback(
+                Component.literal("  ")
+                        .append(Component.translatable("commands.selectium-mod.showStats.serverKills").withStyle(ChatFormatting.DARK_RED))
+                        .append(Component.literal(": " + configManager.getKills(false)).withStyle(ChatFormatting.GRAY))
+        );
+
+        return 1;
+    }
+
     private static int showHelp(CommandContext<FabricClientCommandSource> ctx)
     {
         chatHeader(ctx, ChatFormatting.YELLOW,"commands.selectium-mod.showHelp.title");
@@ -380,12 +403,17 @@ public class SelectiumCommand
                 {"/selectium player add <Category> <name/UUID>", "commands.selectium-mod.showHelp.playerAdd"},
                 {"/selectium player edit <Category> <name/UUID>", "commands.selectium-mod.showHelp.playerEdit"},
                 {"/selectium player remove <name/UUID>", "commands.selectium-mod.showHelp.playerRemove"},
+                {"/selectium player group add <name/UUID> <group>", "commands.selectium-mod.showHelp.playerGroupEdit"},
+                {"/selectium player group remove <name/UUID>", "commands.selectium-mod.showHelp.playerGroupRemove"},
+                {"/selectium player group toggle", "commands.selectium-mod.showHelp.playerGroupToggle"},
                 {"/selectium player nickname add <name/UUID> <nickname>", "commands.selectium-mod.showHelp.playerNicknameEdit"},
                 {"/selectium player nickname remove <name/UUID>", "commands.selectium-mod.showHelp.playerNicknameRemove"},
-                {"/selectium player clearAll", "commands.selectium-mod.showHelp.playerClearAll"},
-                {"/selectium player toggleInfo", "commands.selectium-mod.showHelp.playerToggleInfo"},
+                {"/selectium player nickname toggle", "commands.selectium-mod.showHelp.playerNicknameToggle"},
+                {"/selectium player clear", "commands.selectium-mod.showHelp.playerClear"},
+                {"/selectium player toggle", "commands.selectium-mod.showHelp.playerToggle"},
                 {"/selectium discord link <token>", "commands.selectium-mod.showHelp.discordLink"},
                 {"/selectium discord unlink", "commands.selectium-mod.showHelp.discordUnlink"},
+                {"/selectium stats", "commands.selectium-mod.showHelp.stats"},
         };
 
         for (String[] cmd : cmds)
@@ -400,15 +428,13 @@ public class SelectiumCommand
         return 1;
     }
 
-    // ── Formatting helpers ─────────────────────────────────────────────────
-
     private static void chatHeader(CommandContext<FabricClientCommandSource> ctx, ChatFormatting color, String key, Object... params)
     {
         ctx.getSource().sendFeedback(
                 Component.literal("━━━ ")
-                .withStyle(ChatFormatting.GOLD)
+                .withStyle(ChatFormatting.GRAY)
                 .append(Component.translatable(key, params).withStyle(color, ChatFormatting.BOLD))
-                .append(Component.literal(" ━━━").withStyle(ChatFormatting.GOLD))
+                .append(Component.literal(" ━━━").withStyle(ChatFormatting.GRAY))
         );
     }
 
@@ -416,7 +442,7 @@ public class SelectiumCommand
     {
         ctx.getSource().sendFeedback(
                 Component.literal("[Selectium] ")
-                        .withStyle(ChatFormatting.GOLD)
+                        .withStyle(ChatFormatting.YELLOW)
                         .append(Component.translatable(key, params).withStyle(color))
         );
     }

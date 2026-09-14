@@ -16,35 +16,44 @@
   "commands.selectium-mod.playerGroupSet.failed": "%1$s is not in list",
   "commands.selectium-mod.playerGroupSet.invalid": "Invalid UUID or not in list",
 
+  "commands.selectium-mod.playerGroupToggle.enable": "Player group information shown",
+  "commands.selectium-mod.playerGroupToggle.disable": "Player group information hidden",
+
   "commands.selectium-mod.playerNicknameSet.edited": "%1$s nickname set to %2$s",
   "commands.selectium-mod.playerNicknameSet.removed": "%1$s nickname removed",
   "commands.selectium-mod.playerNicknameSet.failed": "%1$s is not in list",
   "commands.selectium-mod.playerNicknameSet.invalid": "Invalid UUID or not in list",
 
-  "commands.selectium-mod.playerClearAll": "Player list cleared",
+  "commands.selectium-mod.playerNicknameToggle.enable": "Player nickname information shown",
+  "commands.selectium-mod.playerNicknameToggle.disable": "Player nickname information hidden",
 
-  "commands.selectium-mod.playerGroupToggleInfo.enable": "Player group information shown",
-  "commands.selectium-mod.playerGroupToggleInfo.disable": "Player group information hidden",
+  "commands.selectium-mod.playerClear": "Personal players cleared from list",
 
-  "commands.selectium-mod.playerNicknameToggleInfo.enable": "Player nickname information shown",
-  "commands.selectium-mod.playerNicknameToggleInfo.disable": "Player nickname information hidden",
-
-  "commands.selectium-mod.playerToggleInfo.enable": "Player name information shown",
-  "commands.selectium-mod.playerToggleInfo.disable": "Player name information hidden",
+  "commands.selectium-mod.playerToggle.enable": "Player name information shown",
+  "commands.selectium-mod.playerToggle.disable": "Player name information hidden",
 
   "commands.selectium-mod.discordSet.connecting": "Connecting to discord server...",
   "commands.selectium-mod.discordSet.disconnecting": "Disconnecting from discord server...",
   "commands.selectium-mod.discordSet.connected": "Discord connected",
   "commands.selectium-mod.discordSet.disconnected": "Discord disconnected",
 
+  "commands.selectium-mod.showStats.title": "Selectium Mod — Statistics",
+  "commands.selectium-mod.showStats.clientKills": "Personal targets killed",
+  "commands.selectium-mod.showStats.serverKills": "Shared targets killed",
+
   "commands.selectium-mod.showHelp.title": "Selectium Mod — Commands",
   "commands.selectium-mod.showHelp.playerAdd": "Add player to list",
-  "commands.selectium-mod.showHelp.playerEdit": "Replace player from list",
+  "commands.selectium-mod.showHelp.playerEdit": "Change player from list",
   "commands.selectium-mod.showHelp.playerRemove": "Remove player from list",
-  "commands.selectium-mod.showHelp.playerNicknameEdit": "Add or replace nickname of player on list",
+  "commands.selectium-mod.showHelp.playerGroupEdit": "Add or change group of player on list",
+  "commands.selectium-mod.showHelp.playerGroupRemove": "Remove group of player on list",
+  "commands.selectium-mod.showHelp.playerGroupToggle": "Enable or disable player group visuals",
+  "commands.selectium-mod.showHelp.playerNicknameEdit": "Add or change nickname of player on list",
   "commands.selectium-mod.showHelp.playerNicknameRemove": "Remove nickname of player on list",
-  "commands.selectium-mod.showHelp.playerClearAll": "Remove all user added players from list",
-  "commands.selectium-mod.showHelp.playerToggleInfo": "Enable or disable player name colors and nicknames",
+  "commands.selectium-mod.showHelp.playerNicknameToggle": "Enable or disable player nickname visuals",
+  "commands.selectium-mod.showHelp.playerClear": "Remove all players from list added personally",
+  "commands.selectium-mod.showHelp.playerToggle": "Enable or disable all player nametag visuals",
   "commands.selectium-mod.showHelp.discordLink": "Connect to Selectium discord server",
-  "commands.selectium-mod.showHelp.discordUnlink": "Disconnect from Selectium discord server and remove all server players from list"
+  "commands.selectium-mod.showHelp.discordUnlink": "Disconnect from Selectium discord server and remove shared players from list",
+  "commands.selectium-mod.showHelp.stats": "Display mod statistics"
 }

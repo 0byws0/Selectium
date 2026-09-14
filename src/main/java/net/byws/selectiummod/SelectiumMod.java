@@ -15,23 +15,13 @@ import net.byws.selectiummod.config.KillTracker;
 
 public class SelectiumMod implements ClientModInitializer
 {
-
 	public static final String MOD_ID = "selectium-mod";
-
-	// This logger is used to write text to the console and the log file.
-	// It is considered best practice to use your mod id as the logger's name.
-	// That way, it's clear which mod wrote info, warnings, and errors.
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-
 	public static final Gson GSON = new Gson();
 
 	@Override
 	public void onInitializeClient()
 	{
-		// This code runs as soon as Minecraft is in a mod-load-ready state.
-		// However, some things (like resources) may still be uninitialized.
-		// Proceed with mild caution.
-
 		ConfigManager.init(LOGGER, GSON);
 		DiscordConnection.init(LOGGER, GSON);
 

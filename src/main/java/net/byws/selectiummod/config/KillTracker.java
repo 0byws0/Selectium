@@ -3,26 +3,24 @@ package net.byws.selectiummod.config;
 import net.minecraft.client.Minecraft;
 
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public final class KillTracker
 {
-    private record PatternTemplate(String prefix, String delimiter, String suffix, boolean killerFirst)
+    private record PatternTemplate(Pattern pattern)
     {
         public String match(String message)
         {
-            if (!message.startsWith(prefix) || !message.endsWith(suffix)) return null;
+            Matcher matcher = pattern.matcher(message);
+            if (!matcher.matches()) return null;
 
-            int coreMsgEnd = message.length() - suffix.length();
-            if (prefix.length() > coreMsgEnd) return null;
+            String playerName = matcher.group("player");
+            String killerName = matcher.group("killer");
 
-            String coreMsg = message.substring(prefix.length(), coreMsgEnd);
-            int delimPos = coreMsg.indexOf(delimiter);
-            if (delimPos == -1) return null;
+            if (!killerName.equals(Minecraft.getInstance().getUser().getName())) return null; // || killerName.equals(playerName)
 
-            if (!(killerFirst ? coreMsg.substring(0, delimPos) : coreMsg.substring(delimPos + delimiter.length()))
-                    .equals(Minecraft.getInstance().getUser().getName())) return null;
-
-            return killerFirst ? coreMsg.substring(delimPos + delimiter.length()) : coreMsg.substring(0, delimPos);
+            return playerName;
         }
     }
 
@@ -110,36 +108,43 @@ public final class KillTracker
 
     public static void update(String message)
     {
-        message = stripPunctuation(message);
-
         for (PatternTemplate template : TEMPLATES)
         {
             if (ConfigManager.getInstance().addKill(template.match(message))) break;
         }
     }
 
-    private static String stripPunctuation(String text)
-    {
-        StringBuilder stringBuilder = new StringBuilder(text.length());
-
-        for (int i = 0; i < text.length(); ++i)
-        {
-            char c = text.charAt(i);
-            if (Character.isLetterOrDigit(c) || c == ' ' || c == '_' || c == '<' || c == '>') stringBuilder.append(c);
-        }
-
-        return stringBuilder.toString();
-    }
-
     private static PatternTemplate parseTemplate(String killMsg)
     {
-        killMsg = stripPunctuation(killMsg);
-        int playerIdx = killMsg.indexOf("<player>");
-        int killerIdx = killMsg.indexOf("<killer>");
+        StringBuilder regex = new StringBuilder(".*?");
+        boolean hasPlayerTag = false;
+        boolean hasKillerTag = false;
 
-        return new PatternTemplate(killMsg.substring(0, Math.min(playerIdx, killerIdx)),
-                killMsg.substring(Math.min(playerIdx, killerIdx) + 8, Math.max(playerIdx, killerIdx)),
-                killMsg.substring(Math.max(playerIdx, killerIdx) + 8),
-                killerIdx < playerIdx);
+        int i = 0;
+        while (i < killMsg.length())
+        {
+            if (killMsg.startsWith("<player>", i))
+            {
+                regex.append(hasPlayerTag ? "\\k<player>" : "(?<player>\\w{2,16})");
+                hasPlayerTag = true;
+                i += "<player>".length();
+            }
+            else if (killMsg.startsWith("<killer>", i))
+            {
+                regex.append(hasKillerTag ? "\\k<killer>" : "(?<killer>\\w{2,16})");
+                hasKillerTag = true;
+                i += "<killer>".length();
+            }
+            else
+            {
+                char c = killMsg.charAt(i);
+                regex.append(Pattern.quote(String.valueOf(c)));
+                if (!Character.isLetterOrDigit(c) && !Character.isWhitespace(c)) regex.append("?");
+                ++i;
+            }
+        }
+        regex.append(".*");
+
+        return new PatternTemplate(Pattern.compile(regex.toString()));
     }
 }
