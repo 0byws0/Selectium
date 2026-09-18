@@ -54,24 +54,7 @@ public class ConfigManager
             ConfigJsonObj loaded = gson.fromJson(Files.readString(CONFIG_PATH), ConfigJsonObj.class);
             if (loaded != null) config = loaded;
 
-            if (config.playerCatList != null) // remove next update
-            {
-                config.playerList = config.playerCatList;
-                config.playerCatList = null;
-            }
-            if (config.token != null) // remove next update
-            {
-                config.tokens.put(Minecraft.getInstance().getUser().getProfileId(), config.token);
-                config.token = null;
-            }
-            for (ConfigJsonObj.PlayerData playerData : config.playerList.values()) // remove next update
-            {
-                if (playerData.group == null) playerData.group = "";
-                if (playerData.type == null) continue;
-                if (playerData.clientSide) playerData.clientType = playerData.type;
-                else playerData.serverType = playerData.type;
-                playerData.type = null;
-            }
+            config.migrateData();
         }
         catch (IOException e)
         {

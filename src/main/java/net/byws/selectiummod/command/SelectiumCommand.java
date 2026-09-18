@@ -322,15 +322,12 @@ public class SelectiumCommand
         if (discordConnection.isConnecting())
         {
             chatMessage(ctx, ChatFormatting.RED, "commands.selectium-mod.discordSet.connecting");
-            return 1;
         }
-        if (discordConnection.isDisconnecting())
+        else if (discordConnection.isDisconnecting())
         {
             chatMessage(ctx, ChatFormatting.RED, "commands.selectium-mod.discordSet.disconnecting");
-            return 1;
         }
-
-        if (token == null)
+        else if (token == null)
         {
             configManager.setToken(null);
 
@@ -380,16 +377,14 @@ public class SelectiumCommand
         ConfigManager configManager = ConfigManager.getInstance();
         chatHeader(ctx, ChatFormatting.YELLOW,"commands.selectium-mod.showStats.title");
 
-        ctx.getSource().sendFeedback(
-                Component.literal("  ")
-                        .append(Component.translatable("commands.selectium-mod.showStats.clientKills").withStyle(ChatFormatting.RED))
-                        .append(Component.literal(": " + configManager.getKills(true)).withStyle(ChatFormatting.GRAY))
+        ctx.getSource().sendFeedback(Component.literal("  ")
+                .append(Component.translatable("commands.selectium-mod.showStats.clientKills").withStyle(ChatFormatting.RED))
+                .append(Component.literal(": " + configManager.getKills(true)).withStyle(ChatFormatting.GRAY))
         );
 
-        ctx.getSource().sendFeedback(
-                Component.literal("  ")
-                        .append(Component.translatable("commands.selectium-mod.showStats.serverKills").withStyle(ChatFormatting.DARK_RED))
-                        .append(Component.literal(": " + configManager.getKills(false)).withStyle(ChatFormatting.GRAY))
+        ctx.getSource().sendFeedback(Component.literal("  ")
+                .append(Component.translatable("commands.selectium-mod.showStats.serverKills").withStyle(ChatFormatting.DARK_RED))
+                .append(Component.literal(": " + configManager.getKills(false)).withStyle(ChatFormatting.GRAY))
         );
 
         return 1;
@@ -418,10 +413,9 @@ public class SelectiumCommand
 
         for (String[] cmd : cmds)
         {
-            ctx.getSource().sendFeedback(
-                    Component.literal("  " + cmd[0]).withStyle(ChatFormatting.YELLOW)
-                            .append(Component.literal("  — ").withStyle(ChatFormatting.GRAY))
-                            .append(Component.translatable(cmd[1]).withStyle(ChatFormatting.GRAY))
+            ctx.getSource().sendFeedback(Component.literal("  " + cmd[0]).withStyle(ChatFormatting.YELLOW)
+                    .append(Component.literal("  — ").withStyle(ChatFormatting.GRAY))
+                    .append(Component.translatable(cmd[1]).withStyle(ChatFormatting.GRAY))
             );
         }
 
@@ -430,8 +424,7 @@ public class SelectiumCommand
 
     private static void chatHeader(CommandContext<FabricClientCommandSource> ctx, ChatFormatting color, String key, Object... params)
     {
-        ctx.getSource().sendFeedback(
-                Component.literal("━━━ ")
+        ctx.getSource().sendFeedback(Component.literal("━━━ ")
                 .withStyle(ChatFormatting.GRAY)
                 .append(Component.translatable(key, params).withStyle(color, ChatFormatting.BOLD))
                 .append(Component.literal(" ━━━").withStyle(ChatFormatting.GRAY))
@@ -440,10 +433,9 @@ public class SelectiumCommand
 
     private static void chatMessage(CommandContext<FabricClientCommandSource> ctx, ChatFormatting color, String key, Object... params)
     {
-        ctx.getSource().sendFeedback(
-                Component.literal("[Selectium] ")
-                        .withStyle(ChatFormatting.YELLOW)
-                        .append(Component.translatable(key, params).withStyle(color))
+        ctx.getSource().sendFeedback(Component.literal("[Selectium] ")
+                .withStyle(ChatFormatting.YELLOW)
+                .append(Component.translatable(key, params).withStyle(color))
         );
     }
 }

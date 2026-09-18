@@ -1,6 +1,7 @@
 package net.byws.selectiummod.config;
 
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 
 import java.util.HashMap;
 import java.util.UUID;
@@ -24,7 +25,7 @@ public class ConfigJsonObj
 
     public static class PlayerData
     {
-        public boolean clientSide; // remove next update
+        public Boolean clientSide; // remove next update
         public Category type; // remove next update
         public Category clientType;
         public Category serverType;
@@ -38,6 +39,12 @@ public class ConfigJsonObj
             this.group = group;
             this.nickname = nickname;
         }
+
+        public ChatFormatting getDominantColor()
+        {
+            return (clientType != null && !clientType.equals(serverType)) ?
+                    clientType.CLIENT_COLOR_FORMAT : serverType.SERVER_COLOR_FORMAT;
+        }
     }
 
     public String token = null; // remove next update
@@ -50,4 +57,29 @@ public class ConfigJsonObj
     public boolean enableGroupInfo = true;
     public boolean enableNicknameInfo = true;
     public boolean enableInfo = true;
+
+    public void migrateData()
+    {
+        if (playerCatList != null) // remove next update
+        {
+            playerList = playerCatList;
+            playerCatList = null;
+        }
+        if (token != null) // remove next update
+        {
+            tokens.put(Minecraft.getInstance().getUser().getProfileId(), token);
+            token = null;
+        }
+        for (PlayerData playerData : playerList.values()) // remove next update
+        {
+            if (playerData.group == null) playerData.group = "";
+            if (playerData.type != null)
+            {
+                if (playerData.clientSide == null || playerData.clientSide) playerData.clientType = playerData.type;
+                else playerData.serverType = playerData.type;
+                playerData.clientSide = null;
+                playerData.type = null;
+            }
+        }
+    }
 }

@@ -20,35 +20,20 @@ public abstract class PlayerMixin
         ConfigManager configManager = ConfigManager.getInstance();
         if (!configManager.getEnableInfo()) return original;
 
-        Player player = (Player)(Object)this;
-        String playerName = player.getGameProfile().getName();
-        MutableComponent mutableText = original.copy();
+        String playerName = ((Player)(Object)this).getGameProfile().getName();
+        ConfigJsonObj.PlayerData playerData = configManager.getPlayerData(playerName);
+        MutableComponent mutableText = original.copy().withStyle(ChatFormatting.WHITE);
+        if (playerData == null) return mutableText;
 
-        ConfigJsonObj.PlayerData playerData = configManager.getPlayerData(player.getGameProfile().getId());
-        if (playerData == null) playerData = configManager.getPlayerData(playerName);
-
-        mutableText.withStyle(ChatFormatting.WHITE);
-
-        if (playerData != null)
+        if (configManager.getEnableGroupInfo() && !playerData.group.isEmpty())
         {
-            if (configManager.getEnableGroupInfo() && !playerData.group.isEmpty())
-            {
-                mutableText = Component.literal("[" + playerData.group + "] ").append(mutableText);
-            }
-            if (configManager.getEnableNicknameInfo() && !playerName.equals(playerData.nickname) && !playerData.nickname.isEmpty())
-            {
-                mutableText.append(" (" + playerData.nickname + ")");
-            }
-            if (playerData.clientType != null && !playerData.clientType.equals(playerData.serverType))
-            {
-                mutableText.withStyle(playerData.clientType.CLIENT_COLOR_FORMAT);
-            }
-            else if (playerData.serverType != null)
-            {
-                mutableText.withStyle(playerData.serverType.SERVER_COLOR_FORMAT);
-            }
-            // mutableText.withStyle(ChatFormatting.BOLD);
+            mutableText = Component.literal("[" + playerData.group + "] ").append(mutableText);
         }
+        if (configManager.getEnableNicknameInfo() && !playerName.equals(playerData.nickname) && !playerData.nickname.isEmpty())
+        {
+            mutableText.append(" (" + playerData.nickname + ")");
+        }
+        mutableText.withStyle(playerData.getDominantColor());
 
         return mutableText;
     }

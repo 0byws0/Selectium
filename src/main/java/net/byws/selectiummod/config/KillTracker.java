@@ -1,10 +1,11 @@
 package net.byws.selectiummod.config;
 
-import net.minecraft.client.Minecraft;
-
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 
 public final class KillTracker
 {
@@ -17,6 +18,11 @@ public final class KillTracker
 
             String playerName = matcher.group("player");
             String killerName = matcher.group("killer");
+
+            if (ConfigManager.getInstance().getPlayerNameList().get(killerName) != null)
+            {
+                return playerName;
+            }
 
             if (!killerName.equals(Minecraft.getInstance().getUser().getName())) return null; // || killerName.equals(playerName)
 
@@ -38,7 +44,7 @@ public final class KillTracker
             "<killer> betrayed <player>.",
             "<player> was pummelled by <killer>'s Kung Fu moves.",
             "<player> was smacked into next week by <killer>.",
-            "<player> has been sent into the after life by <killer>.",
+            "<player> has been sent into the afterlife by <killer>.",
             "<killer> bought <player> a gift... Oh wait, it's just death.",
             "<killer> gave <player> the L!",
             "<killer> sent <player> into a deep sleep!",
@@ -68,7 +74,7 @@ public final class KillTracker
             "<killer> yeeted their weapon into <player>.",
             "<killer> brawled <player> to death.",
             "<killer> UwU'd <player> to death!",
-            "<player> was ticked to death by <killer>.",
+            "<player> was tickled to death by <killer>.",
             "<player> was sniped by <killer>.",
             "<player> was shot by <killer>.",
             "<killer> gave <player> all of their projectiles!",
@@ -102,12 +108,15 @@ public final class KillTracker
             "<killer> screamed \"This is Sparta!\" before kicking <player> into the void.",
             "<player> got sent into the void by <killer>.",
             "<killer> blew <player> into the void.",
-            "<player> was slapped into the void by <killer>",
+            "<player> was slapped into the void by <killer>.",
             "<killer> scared <player> into the void."
     ).stream().map(KillTracker::parseTemplate).toList();
 
     public static void update(String message)
     {
+        message = message.replaceAll("[^\\x20-\\x7E]+", "").trim();
+        Minecraft.getInstance().gui.getChat().addMessage(Component.literal(message));
+
         for (PatternTemplate template : TEMPLATES)
         {
             if (ConfigManager.getInstance().addKill(template.match(message))) break;
