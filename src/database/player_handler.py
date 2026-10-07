@@ -23,10 +23,11 @@ class Player:
     alias: str | None
     dc_id: int | None
     token_hash: bytes | None
+    vanquishes: int | None
 
     @classmethod
     async def create(cls, mc_uuid: UUID | None, mc_name: str | None, cat: Category, org: str = None,
-                     alias: str = None, dc_id: int = None, token_hash: bytes = None):
+                     alias: str = None, dc_id: int = None, token_hash: bytes = None, vanquishes: int = None):
         if not mc_uuid and not mc_name:
             raise TypeError("Both UUID and username not provided")
 
@@ -41,7 +42,7 @@ class Player:
         else:
             raise ValueError("Player UUID invalid")
 
-        return cls(mc_uuid, mc_name, cat, org, alias, dc_id, token_hash)
+        return cls(mc_uuid, mc_name, cat, org, alias, dc_id, token_hash, vanquishes)
 
     async def update(self):
         if name_str := await MojangAPI.get_username(str(self.mc_uuid)):

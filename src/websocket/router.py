@@ -28,6 +28,15 @@ async def websocket_endpoint(websocket: WebSocket, conn_uuid = Depends(verify_he
     try:
         await conn_manager.broadcast(ConnectionManager.Actions.LIST_UPDATE, await database.get_player(), conn_uuid)
         while True:
-            await websocket.receive_text()
+            try:
+                received_data = await websocket.receive_json()
+
+                match received_data["action"]:
+                    case "update_player_data":
+                        await database.update_player(DatabaseManager.Fields.UUID, conn_uuid,
+                                                     **{DatabaseManager.Fields.KILLS.value:received_data["payload"]["kills"]})
+            except:
+                pass
+
     except WebSocketDisconnect:
         await conn_manager.disconnect(conn_uuid)

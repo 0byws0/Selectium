@@ -15,6 +15,7 @@ class DatabaseManager:
         ALT = "alias"
         DISCORD = "dc_id"
         TOKEN = "token_hash"
+        KILLS = "vanquishes"
 
         def convert(self, field_input):
             if field_input is None: return None
@@ -29,7 +30,7 @@ class DatabaseManager:
                             return Player.Category[field_input].name
                         except KeyError:
                             return Player.Category(field_input).name
-                    case self.DISCORD:
+                    case self.DISCORD | self.KILLS:
                         return int(field_input)
                     case self.TOKEN:
                         return field_input if (isinstance(field_input, bytes) and len(field_input) == 32) else \
@@ -47,7 +48,7 @@ class DatabaseManager:
                         return str(field_input)
                     case self.CATEGORY:
                         return Player.Category[field_input]
-                    case self.DISCORD:
+                    case self.DISCORD | self.KILLS:
                         return int(field_input)
                     case self.TOKEN:
                         return field_input
@@ -62,7 +63,7 @@ class DatabaseManager:
         self.db_path = db_path
 
     async def connect(self):
-        self.conn = await aiosqlite.connect(self.db_path)
+        self.conn = await aiosqlite.connect(self.db_path, timeout=10)
         # self.conn.row_factory = aiosqlite.Row
 
         await self.conn.execute("PRAGMA journal_mode=WAL")
@@ -73,7 +74,10 @@ class DatabaseManager:
                         {self.Fields.CLAN.value} TEXT,
                         {self.Fields.ALT.value} TEXT,
                         {self.Fields.DISCORD.value} INTEGER,
-                        {self.Fields.TOKEN.value} BLOB)""")
+                        {self.Fields.TOKEN.value} BLOB,
+                        {self.Fields.KILLS.value} INTEGER)""")
+
+        # await self.conn.execute(f"ALTER TABLE players ADD COLUMN {self.Fields.KILLS.value} INTEGER")
 
         await self.conn.execute(f"""CREATE TABLE IF NOT EXISTS server (
                                 id INTEGER PRIMARY KEY,
@@ -94,11 +98,12 @@ class DatabaseManager:
                       self.Fields.CLAN.deconvert(row[3]),
                       self.Fields.ALT.deconvert(row[4]),
                       self.Fields.DISCORD.deconvert(row[5]),
-                      self.Fields.TOKEN.deconvert(row[6]),)
+                      self.Fields.TOKEN.deconvert(row[6]),
+                      self.Fields.KILLS.deconvert(row[7]))
 
     async def insert_player(self, player_data: Player):
         cur = await self.conn.execute(f"INSERT INTO players "
-                                      f"VALUES (:mc_uuid, :mc_name, :cat, :org, :alias, :dc_id, :token_hash) "
+                                      f"VALUES (:mc_uuid, :mc_name, :cat, :org, :alias, :dc_id, :token_hash, :vanquishes) "
                                       f"ON CONFLICT ({self.Fields.UUID.value}) DO NOTHING",
                                       {"mc_uuid": player_data.mc_uuid.bytes,
                                        "mc_name": player_data.mc_name,
@@ -106,7 +111,8 @@ class DatabaseManager:
                                        "org": player_data.org,
                                        "alias": player_data.alias,
                                        "dc_id": player_data.dc_id,
-                                       "token_hash":player_data.token_hash})
+                                       "token_hash":player_data.token_hash,
+                                       "vanquishes":player_data.vanquishes})
 
         inserted = (cur.rowcount != 0)
         await self.conn.commit()

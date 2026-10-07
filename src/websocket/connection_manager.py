@@ -1,6 +1,5 @@
 from fastapi import WebSocket, status, WebSocketException
 from enum import Enum
-import json
 
 class ConnectionManager:
     class Actions(Enum):
@@ -17,9 +16,9 @@ class ConnectionManager:
                         if not isinstance(payload_data, (list, tuple)): payload_data = [payload_data]
 
                         return {str(player_data.mc_uuid):
-                                    {"shared":True,
-                                     "type":player_data.cat.name,
-                                     "nickname":player_data.alias} # player_data.alias or ""
+                                    {"type":player_data.cat.name,
+                                     "group":player_data.org,
+                                     "nickname":player_data.alias}
                                 for player_data in payload_data}
 
             except (ValueError, TypeError, KeyError, AttributeError):
@@ -43,7 +42,6 @@ class ConnectionManager:
                 pass
 
     async def broadcast(self, action: Actions, payload_data, conn_uuid: str = None):
-        message = json.dumps({"action":action.value, "payload":action.convert(payload_data)}, separators=(",", ":"))
         if conn_uuid is None:
             conn_snapshot = list(self.active_connections.values())
         else:
@@ -51,6 +49,6 @@ class ConnectionManager:
 
         for ws in conn_snapshot:
             try:
-                await ws.send_text(message)
+                await ws.send_json({"action":action.value, "payload":action.convert(payload_data)})
             except Exception:
                 pass

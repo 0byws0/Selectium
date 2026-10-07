@@ -6,8 +6,8 @@ from src.config import GUILD_ID, GUILD_ORG_CHANNEL_ID, ALLY_CHANNEL_ID, NEUTRAL_
 from src.database.player_handler import Player
 
 class Announcements(commands.Cog):
-    GUILD_ORG = "Selectium"
-    NO_SUBGROUP = "OTROS / OTHERS"
+    GUILD_ORG = "Selectium" # use guild name
+    NO_SUBGROUP = "Others / Otros"
     LIST_DISP = {GUILD_ORG:{"title":"# SELECTIUM PLAYER LIST <:Selectium:1345924666526793848>", "ch_id":GUILD_ORG_CHANNEL_ID, "data_name":"guild_org_msg_id"},
                  Player.Category.ALLY:{"title":"# ALLY LIST <:Cubecraft:1468618358982443111>", "ch_id":ALLY_CHANNEL_ID, "data_name":"ally_msg_id"},
                  Player.Category.NEUTRAL:{"title":"# NEUTRAL LIST 🤚🏻", "ch_id":NEUTRAL_CHANNEL_ID, "data_name":"neutral_msg_id"},
@@ -29,11 +29,11 @@ class Announcements(commands.Cog):
 
                         if highest_role := next((r for role_id in reversed(ORDERED_ROLES_IDS)
                                                  if (r := dc_member.get_role(role_id))), None):
-                            player_subgroup = highest_role.name.upper()
+                            player_subgroup = highest_role.name
 
                 if player_group not in self.player_list:
                     self.player_list[player_group] = {(guild.get_role(role_id) or
-                                                       await guild.fetch_role(role_id)).name.upper():{None:[]}
+                                                       await guild.fetch_role(role_id)).name:{None:[]}
                                                       for role_id in reversed(ORDERED_ROLES_IDS)}
             except discord.DiscordException:
                 pass
@@ -41,11 +41,10 @@ class Announcements(commands.Cog):
             player_group = player_data.cat
             player_subgroup = player_data.org or self.NO_SUBGROUP
 
-        group_dict = self.player_list.setdefault(player_group, {})
-        subgroup_dict = group_dict.setdefault(player_subgroup, {None:[]})
-        alias_list = subgroup_dict.setdefault(player_data.alias, [])
-
-        alias_list.append(player_data.mc_name)
+        (self.player_list.setdefault(player_group, {})
+         .setdefault(player_subgroup, {None: []})
+         .setdefault(player_data.alias, [])
+         .append(player_data.mc_name))
 
     async def push_list_update(self):
         guild_config = asdict(await self.bot.db.get_server_data())

@@ -27,6 +27,7 @@ class PlayerList(commands.Cog):
         info_embed.add_field(name="Alt:", value=player_data.alias, inline=False)
         info_embed.add_field(name="Clan:", value=player_data.org, inline=False)
         info_embed.add_field(name="Category:", value=player_data.cat.name, inline=False)
+        info_embed.add_field(name="Kills:", value=player_data.vanquishes, inline=False)
         info_embed.add_field(name="UUID:", value=player_data.mc_uuid, inline=False)
         info_embed.add_field(name="Discord Id:", value=player_data.dc_id, inline=False)
         info_embed.add_field(name="Token:", value="Active" if player_data.token_hash else None, inline=False)
@@ -44,7 +45,7 @@ class PlayerList(commands.Cog):
         "Si encuentras algún problema, envía un mensaje a byws.")
 
         info_embed.add_field(name="Mod Link:", value="https://modrinth.com/mod/selectium-mod", inline=False)
-        info_embed.add_field(name="Account:", value=f"{mc_name} ({mc_uuid})", inline=False)
+        info_embed.add_field(name="Minecraft Account:", value=f"{mc_name} ({mc_uuid})", inline=False)
         info_embed.add_field(name="Token (DO NOT SHARE / NO COMPARTIR):", value=token, inline=False)
 
         return info_embed
@@ -75,8 +76,8 @@ class PlayerList(commands.Cog):
     @app_commands.command(name="player_edit")
     @app_commands.guilds(discord.Object(GUILD_ID))
     @app_commands.checks.has_any_role(*BOT_ROLE_IDS)
-    async def player_edit(self, interaction, field: DatabaseManager.Fields, field_input: str, alt: str = None,
-                            clan: str = None, category: Player.Category = None, discord_id: str = None, token: str = None):
+    async def player_edit(self, interaction, field: DatabaseManager.Fields, field_input: str, alt: str = None, clan: str = None,
+                          category: Player.Category = None, discord_id: str = None, token: str = None, kills: str = None):
         await interaction.response.defer()
 
         upd_params = {}
@@ -85,6 +86,7 @@ class PlayerList(commands.Cog):
         if category is not None: upd_params[DatabaseManager.Fields.CATEGORY.value] = category
         if discord_id is not None: upd_params[DatabaseManager.Fields.DISCORD.value] = discord_id if discord_id.isdigit() else None
         if token is not None: upd_params[DatabaseManager.Fields.TOKEN.value] = None
+        if kills is not None: upd_params[DatabaseManager.Fields.KILLS.value] = kills if kills.isdigit() else None
 
         if upd_params:
             if player_data_list := await self.bot.db.update_player(field, field_input, **upd_params):
@@ -125,7 +127,7 @@ class PlayerList(commands.Cog):
         cur_input = current.lower()
 
         for choice in field_data:
-            choice = str(choice)
+            choice = choice.name if isinstance(choice, Player.Category) else str(choice)
             if cur_input in choice.lower():
                 choices.append(app_commands.Choice(name=choice, value=choice))
             if len(choices) >= 25:
@@ -177,7 +179,7 @@ class PlayerList(commands.Cog):
                 pass
         return {}
 
-    @tasks.loop(minutes=1)
+    @tasks.loop(minutes=30)
     async def update(self):
         players = await self.bot.db.get_player()
         upd_count = -next((i for i, p in enumerate(players) if p.mc_uuid == self.upd_last_uuid), 0)
