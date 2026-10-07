@@ -1,7 +1,6 @@
 package net.byws.selectiummod.websocket;
 
 import net.minecraft.client.Minecraft;
-
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
@@ -11,7 +10,6 @@ import org.slf4j.Logger;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -82,7 +80,7 @@ public class DiscordConnection
         }
     }
 
-    private static final String DISCORD_WS_URL = "wss://bywsdomain.xyz/ws";
+    private static final String DISCORD_WS_URL = "ws://localhost:8000/ws"; // wss://bywsdomain.xyz/ws
     private static final int MAX_MSG_SIZE = 500000;
     private static final long WS_UPDATE_INTERVAL = 80000000000L;
 
@@ -127,7 +125,7 @@ public class DiscordConnection
     {
         if (!isDisconnected()) return CompletableFuture.failedFuture(new IllegalStateException("Cannot connect in current state"));
 
-        connUUID = Minecraft.getInstance().getUser().getProfileId().toString();
+        connUUID = "0422ee86-9842-43dd-8fd7-3665aeb87552"; // Minecraft.getInstance().getUser().getProfileId().toString()
 
         String token = ConfigManager.getInstance().getToken();
         if (token == null) return CompletableFuture.failedFuture(new IllegalStateException("No discord token"));
@@ -154,7 +152,7 @@ public class DiscordConnection
         WebSocketSession session = activeSession;
         session.closed = new CompletableFuture<>();
         session.socket
-                .sendClose(1000, "Normal closure")
+                .sendClose(WebSocket.NORMAL_CLOSURE, "Normal closure")
                 .whenComplete((webSocket, error) ->
                 {
                     if (error != null) Minecraft.getInstance().execute(() -> handleFailure(session, error));
@@ -165,11 +163,11 @@ public class DiscordConnection
 
     public void updateWebsocket()
     {
-        if (!Minecraft.getInstance().getUser().getProfileId().toString().equals(connUUID))
-        {
-            disconnect();
-            connUUID = "";
-        }
+//        if (!Minecraft.getInstance().getUser().getProfileId().toString().equals(connUUID))
+//        {
+//            disconnect();
+//            connUUID = "";
+//        }
         if (!isConnected())
         {
             if (connUUID.isEmpty()) connect();
@@ -180,7 +178,11 @@ public class DiscordConnection
 
         if ((currentNanos - lastPushNanos) > WS_UPDATE_INTERVAL)
         {
-            activeSession.socket.sendPong(StandardCharsets.UTF_8.encode(""));
+            activeSession.socket.sendText(gson.toJson(Map.of(
+                    "action", "update_player_data",
+                    "payload", Map.of("kills", 10)
+            )), true);
+            //activeSession.socket.sendPong(StandardCharsets.UTF_8.encode(""));
             lastPushNanos = currentNanos;
         }
     }
@@ -193,7 +195,7 @@ public class DiscordConnection
             return;
         }
 
-        lastPushNanos = System.nanoTime();
+        lastPushNanos = System.nanoTime(); // + WS_UPDATE_INTERVAL
         session.opened.complete(null);
     }
 
@@ -269,11 +271,11 @@ public class DiscordConnection
 
             if (existingPlayer == null)
             {
-                configManager.addListPlayer(playerUUID, false, updatedPlayer.type, updatedPlayer.group, updatedPlayer.nickname); // updatedPlayer.serverType
+                configManager.addListPlayer(playerUUID, false, updatedPlayer.serverType, updatedPlayer.group, updatedPlayer.nickname);
             }
             else
             {
-                configManager.editListPlayer(playerUUID, false, updatedPlayer.type, updatedPlayer.group, updatedPlayer.nickname); // updatedPlayer.serverType
+                configManager.editListPlayer(playerUUID, false, updatedPlayer.serverType, updatedPlayer.group, updatedPlayer.nickname);
             }
         });
     }

@@ -20,7 +20,7 @@ public abstract class PlayerMixin
         ConfigManager configManager = ConfigManager.getInstance();
         if (!configManager.getEnableInfo()) return original;
 
-        String playerName = ((Player)(Object)this).getGameProfile().getName();
+        String playerName = ((Player)(Object)this).getGameProfile().name();
         ConfigJsonObj.PlayerData playerData = configManager.getPlayerData(playerName);
         MutableComponent mutableText = original.copy().withStyle(ChatFormatting.WHITE);
         if (playerData == null) return mutableText;

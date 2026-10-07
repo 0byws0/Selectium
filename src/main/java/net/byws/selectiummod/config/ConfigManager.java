@@ -103,8 +103,8 @@ public class ConfigManager
 
         for (var playerInfo : connection.getOnlinePlayers())
         {
-            UUID playerUUID = playerInfo.getProfile().getId();
-            String playerName = playerInfo.getProfile().getName();
+            UUID playerUUID = playerInfo.getProfile().id();
+            String playerName = playerInfo.getProfile().name();
             onlinePlayers.put(playerName, playerUUID);
             ConfigJsonObj.PlayerData player = config.playerList.get(playerUUID);
 

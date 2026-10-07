@@ -21,7 +21,7 @@ public abstract class PlayerInfoMixin
         ConfigManager configManager = ConfigManager.getInstance();
         if (!configManager.getEnableInfo()) return;
 
-        String playerName = ((PlayerInfo)(Object)this).getProfile().getName();
+        String playerName = ((PlayerInfo)(Object)this).getProfile().name();
         ConfigJsonObj.PlayerData playerData = configManager.getPlayerData(playerName);
         MutableComponent mutableText = Component.empty().append(playerName).withStyle(ChatFormatting.WHITE);
         if (playerData == null)

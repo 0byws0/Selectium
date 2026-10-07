@@ -25,8 +25,8 @@ public class ConfigJsonObj
 
     public static class PlayerData
     {
-        public Boolean clientSide; // remove next update
-        public Category type; // remove next update
+        public Boolean clientSide; // old data
+        public Category type; // old data
         public Category clientType;
         public Category serverType;
         public String group;
@@ -47,9 +47,9 @@ public class ConfigJsonObj
         }
     }
 
-    public String token = null; // remove next update
+    public String token = null; // old data
     public HashMap<UUID, String> tokens = new HashMap<>();
-    public HashMap<UUID, PlayerData> playerCatList = null; // remove next update
+    public HashMap<UUID, PlayerData> playerCatList = null; // old data
     public HashMap<UUID, PlayerData> playerList = new HashMap<>();
     public HashMap<String, UUID> playerNameList = new HashMap<>();
     public int clientKills = 0;
@@ -60,17 +60,17 @@ public class ConfigJsonObj
 
     public void migrateData()
     {
-        if (playerCatList != null) // remove next update
+        if (playerCatList != null)
         {
             playerList = playerCatList;
             playerCatList = null;
         }
-        if (token != null) // remove next update
+        if (token != null)
         {
             tokens.put(Minecraft.getInstance().getUser().getProfileId(), token);
             token = null;
         }
-        for (PlayerData playerData : playerList.values()) // remove next update
+        for (PlayerData playerData : playerList.values())
         {
             if (playerData.group == null) playerData.group = "";
             if (playerData.type != null)
