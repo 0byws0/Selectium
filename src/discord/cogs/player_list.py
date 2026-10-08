@@ -126,10 +126,20 @@ class PlayerList(commands.Cog):
         field_data = await self.bot.db.get_field(field)
         cur_input = current.lower()
 
-        for choice in field_data:
-            choice = choice.name if isinstance(choice, Player.Category) else str(choice)
-            if cur_input in choice.lower():
-                choices.append(app_commands.Choice(name=choice, value=choice))
+        for item in field_data:
+            match field:
+                case DatabaseManager.Fields.CATEGORY:
+                    choice_value = item.name
+                    choice_name = choice_value
+                case DatabaseManager.Fields.DISCORD:
+                    choice_value = str(item)
+                    choice_name = dc_name.display_name if (dc_name := self.bot.get_user(item)) else choice_value
+                case _:
+                    choice_value = str(item)
+                    choice_name = choice_value
+
+            if cur_input in choice_name.lower():
+                choices.append(app_commands.Choice(name=choice_name, value=choice_value))
             if len(choices) >= 25:
                 break
 

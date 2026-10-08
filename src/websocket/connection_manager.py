@@ -12,14 +12,20 @@ class ConnectionManager:
             if payload_data is None: return None
             try:
                 match self:
-                    case self.LIST_UPDATE | self.LIST_ADD | self.LIST_EDIT | self.LIST_REMOVE:
+                    case self.LIST_UPDATE | self.LIST_ADD | self.LIST_EDIT:
                         if not isinstance(payload_data, (list, tuple)): payload_data = [payload_data]
 
                         return {str(player_data.mc_uuid):
-                                    {"type":player_data.cat.name,
+                                    {"serverType":player_data.cat.name,
                                      "group":player_data.org,
                                      "nickname":player_data.alias}
                                 for player_data in payload_data}
+
+                    case self.LIST_REMOVE:
+                        if not isinstance(payload_data, (list, tuple)): payload_data = [payload_data]
+
+                        return [str(player_data.mc_uuid)
+                                for player_data in payload_data]
 
             except (ValueError, TypeError, KeyError, AttributeError):
                 return None
