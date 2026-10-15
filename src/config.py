@@ -9,7 +9,8 @@ load_dotenv()
 try:
     TOKEN = os.environ["DISCORD_TOKEN"]
     GUILD_ID = int(os.environ["GUILD_ID"])
-    GUILD_ORG_CHANNEL_ID = int(os.environ["GUILD_ORG_CHANNEL_ID"])
+    GUILD_CHANNEL_ID = int(os.environ["GUILD_CHANNEL_ID"])
+    LEADERBOARD_CHANNEL_ID = int(os.environ["LEADERBOARD_CHANNEL_ID"])
     ALLY_CHANNEL_ID = int(os.environ["ALLY_CHANNEL_ID"])
     NEUTRAL_CHANNEL_ID = int(os.environ["NEUTRAL_CHANNEL_ID"])
     TARGET_CHANNEL_ID = int(os.environ["TARGET_CHANNEL_ID"])

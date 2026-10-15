@@ -17,7 +17,7 @@ async def verify_headers(websocket: WebSocket, conn_uuid: str = Header(alias="uu
 
     if not player_valid or not token_valid: raise WebSocketException(status.WS_1008_POLICY_VIOLATION)
 
-    return conn_uuid
+    return str(player_data[0].mc_uuid)
 
 @ws_router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, conn_uuid = Depends(verify_headers)):

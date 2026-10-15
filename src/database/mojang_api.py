@@ -18,14 +18,17 @@ class MojangAPI:
                 if response.status == 200: return (await response.json())["id"]
         except Exception:
             pass
+
         return None
 
     @classmethod
     async def get_username(cls, uuid_str: str) -> str | None:
         uuid_str = uuid_str.replace("-", "")
+
         try:
             async with cls.session.get(f"https://sessionserver.mojang.com/session/minecraft/profile/{uuid_str}") as response:
                 if response.status == 200: return (await response.json())["name"]
         except Exception:
             pass
+
         return None

@@ -27,10 +27,8 @@ async def lifespan(app):
 
     await bot.close()
     bot_task.cancel()
-    try:
-        await bot_task
-    except asyncio.CancelledError:
-        pass
+    try: await bot_task
+    except asyncio.CancelledError: pass
     await database.close()
     await MojangAPI.close()
     log_listener.stop()

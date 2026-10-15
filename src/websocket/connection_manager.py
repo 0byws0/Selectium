@@ -2,7 +2,7 @@ from fastapi import WebSocket, status, WebSocketException
 from enum import Enum
 
 class ConnectionManager:
-    class Actions(Enum):
+    class Actions(Enum): # rework later
         LIST_UPDATE = "update_list_players"
         LIST_ADD = "add_list_player"
         LIST_EDIT = "edit_list_player"
@@ -31,7 +31,7 @@ class ConnectionManager:
                 return None
 
     def __init__(self):
-        self.active_connections: dict[str, WebSocket] = {}
+        self.active_connections: dict[str, WebSocket] = {} # change to uuid later
 
     async def connect(self, conn_uuid: str, conn_ws: WebSocket):
         if conn_uuid in self.active_connections:

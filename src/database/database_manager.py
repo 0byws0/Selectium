@@ -77,14 +77,18 @@ class DatabaseManager:
                         {self.Fields.TOKEN.value} BLOB,
                         {self.Fields.KILLS.value} INTEGER)""")
 
-        # await self.conn.execute(f"ALTER TABLE players ADD COLUMN {self.Fields.KILLS.value} INTEGER")
-
         await self.conn.execute(f"""CREATE TABLE IF NOT EXISTS server (
                                 id INTEGER PRIMARY KEY,
-                                guild_org_msg_id INTEGER,
+                                guild_msg_id INTEGER,
+                                leaderboard_msg_id INTEGER,
                                 ally_msg_id INTEGER,
                                 neutral_msg_id INTEGER,
                                 target_msg_id INTEGER)""")
+
+        # await self.conn.execute(f"ALTER TABLE players ADD COLUMN {self.Fields.KILLS.value} INTEGER")
+        # await self.conn.execute(f"ALTER TABLE server ADD COLUMN guild_msg_id INTEGER")
+        # await self.conn.execute(f"ALTER TABLE server ADD COLUMN leaderboard_msg_id INTEGER")
+        # await self.conn.execute(f"ALTER TABLE server DROP COLUMN guild_org_msg_id")
 
         await self.conn.commit()
 
@@ -183,26 +187,29 @@ class DatabaseManager:
 
         return [self._row_to_player(row) for row in rows]
 
-    async def insert_server_data(self, guild_org_msg_id: int = None, ally_msg_id: int = None, neutral_msg_id: int = None, target_msg_id: int = None):
-        if guild_org_msg_id is None and ally_msg_id is None and neutral_msg_id is None and target_msg_id is None: raise TypeError("No parameters provided")
+    async def insert_server_data(self, guild_msg_id: int = None, leaderboard_msg_id: int = None,
+                                 ally_msg_id: int = None, neutral_msg_id: int = None, target_msg_id: int = None):
+        if all(id is None for id in (guild_msg_id, leaderboard_msg_id, ally_msg_id, neutral_msg_id, target_msg_id)): raise TypeError("No parameters provided")
 
         await self.conn.execute("INSERT INTO server "
-                                "VALUES (1, :guild_org_msg_id, :ally_msg_id, :neutral_msg_id, :target_msg_id) "
+                                "VALUES (1, :guild_msg_id, :leaderboard_msg_id, :ally_msg_id, :neutral_msg_id, :target_msg_id) "
                                 "ON CONFLICT (id) DO UPDATE SET "
-                                "guild_org_msg_id=COALESCE(:guild_org_msg_id, guild_org_msg_id), "
+                                "guild_msg_id=COALESCE(:guild_msg_id, guild_msg_id), "
+                                "leaderboard_msg_id=COALESCE(:leaderboard_msg_id, leaderboard_msg_id), "
                                 "ally_msg_id=COALESCE(:ally_msg_id, ally_msg_id), "
                                 "neutral_msg_id=COALESCE(:neutral_msg_id, neutral_msg_id), "
                                 "target_msg_id=COALESCE(:target_msg_id, target_msg_id)",
-                                {"guild_org_msg_id": guild_org_msg_id,
+                                {"guild_msg_id": guild_msg_id,
+                                 "leaderboard_msg_id": leaderboard_msg_id,
                                  "ally_msg_id": ally_msg_id,
                                  "neutral_msg_id": neutral_msg_id,
                                  "target_msg_id": target_msg_id})
         await self.conn.commit()
 
     async def get_server_data(self):
-        cur = await self.conn.execute("SELECT guild_org_msg_id, ally_msg_id, neutral_msg_id, target_msg_id "
+        cur = await self.conn.execute("SELECT guild_msg_id, leaderboard_msg_id, ally_msg_id, neutral_msg_id, target_msg_id "
                                       "FROM server WHERE id=1")
 
         row = await cur.fetchone()
-        if row: return GuildConfig(row[0], row[1], row[2], row[3])
-        return GuildConfig(None, None, None, None)
+        if row: return GuildConfig(row[0], row[1], row[2], row[3], row[4])
+        return GuildConfig(None, None, None, None, None)

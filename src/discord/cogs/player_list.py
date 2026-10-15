@@ -91,7 +91,7 @@ class PlayerList(commands.Cog):
         if upd_params:
             if player_data_list := await self.bot.db.update_player(field, field_input, **upd_params):
                 await interaction.followup.send(f"Player(s) {' '.join([f'`{player_data.mc_name}`' for player_data in player_data_list])} updated")
-                if category is not None or alt is not None: await self.bot.conn_manager.broadcast(ConnectionManager.Actions.LIST_EDIT, player_data_list)
+                if any(f is not None for f in (alt, clan, category)): await self.bot.conn_manager.broadcast(ConnectionManager.Actions.LIST_EDIT, player_data_list)
             else:
                 await interaction.followup.send(f"{field.name.capitalize()} `{field_input}` not found in database")
         else:
@@ -121,7 +121,7 @@ class PlayerList(commands.Cog):
             await interaction.followup.send(f"{field.name.capitalize()} `{field_input}` not found database")
 
     async def discord_autocomplete(self, field, current, choices):
-        if not field or not current: return choices
+        if not field or not current or field == DatabaseManager.Fields.TOKEN: return choices
 
         field_data = await self.bot.db.get_field(field)
         cur_input = current.lower()
@@ -174,10 +174,9 @@ class PlayerList(commands.Cog):
     async def edit_token_autocomplete(self, interaction, current):
         return [app_commands.Choice(name="- (remove)", value="-")] if not current or current in ["-", "- (remove)"] else []
 
-    async def _update_player_discord(self, player_data):
+    async def _update_player_discord(self, guild, player_data):
         if player_data.token_hash is None and player_data.dc_id is not None:
             try:
-                guild = self.bot.get_guild(GUILD_ID) or await self.bot.fetch_guild(GUILD_ID)
                 dc_member = guild.get_member(player_data.dc_id) or await guild.fetch_member(player_data.dc_id)
 
                 if any(member_role.id in MOD_ROLE_IDS for member_role in dc_member.roles):
@@ -189,8 +188,11 @@ class PlayerList(commands.Cog):
                 pass
         return {}
 
-    @tasks.loop(minutes=30)
+    @tasks.loop(minutes=1)
     async def update(self):
+        try: guild = self.bot.get_guild(GUILD_ID) or await self.bot.fetch_guild(GUILD_ID)
+        except Exception: return
+
         players = await self.bot.db.get_player()
         upd_count = -next((i for i, p in enumerate(players) if p.mc_uuid == self.upd_last_uuid), 0)
         self.upd_last_uuid = None
@@ -206,12 +208,12 @@ class PlayerList(commands.Cog):
                     upd_params[DatabaseManager.Fields.USERNAME.value] = player_data.mc_name
                 upd_count += 1
 
-            upd_params.update(await self._update_player_discord(player_data))
+            upd_params.update(await self._update_player_discord(guild, player_data))
 
             if upd_params:
                 await self.bot.db.update_player(DatabaseManager.Fields.UUID, player_data.mc_uuid, **upd_params)
 
-            await self.bot.get_cog("Announcements").append_list_player(player_data)
+            await self.bot.get_cog("Announcements").append_list_player(guild, player_data)
         await self.bot.get_cog("Announcements").push_list_update()
 
     @update.before_loop
