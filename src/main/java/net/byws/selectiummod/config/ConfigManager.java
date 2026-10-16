@@ -192,18 +192,11 @@ public class ConfigManager
         requiresSave = true;
     }
 
-    public boolean addKill(String playerName) { return addKill(config.playerNameList.get(playerName)); }
-
-    public boolean addKill(UUID playerUUID)
+    public void setKills(int kills, boolean clientSide)
     {
-        ConfigJsonObj.PlayerData player = config.playerList.get(playerUUID);
-        if (player == null) return false;
-
-        if (ConfigJsonObj.Category.TARGET.equals(player.clientType)) ++config.clientKills;
-        if (ConfigJsonObj.Category.TARGET.equals(player.serverType)) ++config.serverKills;
+        if (clientSide) config.clientKills = kills;
+        else config.serverKills = kills;
         requiresSave = true;
-
-        return true;
     }
 
     public void setEnableGroupInfo(boolean enable)

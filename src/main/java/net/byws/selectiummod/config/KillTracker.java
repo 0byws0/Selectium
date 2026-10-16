@@ -1,7 +1,6 @@
 package net.byws.selectiummod.config;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.network.chat.Component;
 
 import java.util.List;
 import java.util.regex.Matcher;
@@ -10,7 +9,6 @@ import java.util.regex.Pattern;
 public final class KillTracker
 {
     private static final Pattern NON_ASCII = Pattern.compile("[^\\x20-\\x7E]+");
-
     private static final List<Pattern> KILL_PATTERNS = List.of(
                     "<player> was slain by <killer>.",
                     "<player> was killed by <killer> using magic.",
@@ -93,11 +91,40 @@ public final class KillTracker
                     "<killer> scared <player> into the void."
             ).stream().map(KillTracker::compileTemplate).toList();
 
-    public static void update(String message)
+    private static KillTracker instance;
+
+    private int serverSideKillCount;
+
+    public static void init()
+    {
+        if (instance != null) return;
+        instance = new KillTracker();
+    }
+
+    public static KillTracker getInstance()
+    {
+        if (instance == null) throw new IllegalStateException("KillTracker not initialized");
+        return instance;
+    }
+
+    public int serverSideKills()
+    {
+        ConfigManager configManager = ConfigManager.getInstance();
+        int temp = serverSideKillCount;
+
+        serverSideKillCount = 0;
+        configManager.setKills(configManager.getKills(false) + temp, false);
+
+        return temp;
+    }
+
+    public void update(String message)
     {
         String username = Minecraft.getInstance().getUser().getName();
         message = NON_ASCII.matcher(message).replaceAll("").trim();
         if (!message.contains(username)) return;
+
+        ConfigManager configManager = ConfigManager.getInstance();
 
         for (Pattern pattern : KILL_PATTERNS)
         {
@@ -106,14 +133,20 @@ public final class KillTracker
 
             String killerName = matcher.group("killer");
             String playerName = matcher.group("player");
+            if (!username.equals(killerName) || killerName.equals(playerName)) continue;
 
-            if (username.equals(killerName) && !killerName.equals(playerName))
+            ConfigJsonObj.PlayerData player = configManager.getPlayerData(playerName);
+            if (player == null) continue;
+
+            if (ConfigJsonObj.Category.TARGET.equals(player.clientType))
             {
-                if (ConfigManager.getInstance().addKill(playerName))
-                {
-                    Minecraft.getInstance().gui.getChat().addMessage(Component.literal("SL mod added kill"));
-                }
+                configManager.setKills(configManager.getKills(true) + 1, true);
             }
+            else if (ConfigJsonObj.Category.TARGET.equals(player.serverType))
+            {
+                ++serverSideKillCount;
+            }
+
             break;
         }
     }

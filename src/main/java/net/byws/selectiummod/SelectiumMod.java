@@ -23,9 +23,11 @@ public class SelectiumMod implements ClientModInitializer
 	public void onInitializeClient()
 	{
 		ConfigManager.init(LOGGER, GSON);
+		KillTracker.init();
 		DiscordConnection.init(LOGGER, GSON);
 
 		ConfigManager configManager = ConfigManager.getInstance();
+		KillTracker killTracker = KillTracker.getInstance();
 		DiscordConnection discordConnection = DiscordConnection.getInstance();
 
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
@@ -33,7 +35,7 @@ public class SelectiumMod implements ClientModInitializer
 
 		ClientReceiveMessageEvents.GAME.register((component, overlay) ->
 		{
-			if (!overlay) KillTracker.update(component.getString());
+			if (!overlay) killTracker.update(component.getString());
 		});
 
 		ClientTickEvents.START_CLIENT_TICK.register(client ->

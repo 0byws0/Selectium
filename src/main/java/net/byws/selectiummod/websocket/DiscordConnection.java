@@ -11,12 +11,14 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import net.byws.selectiummod.config.ConfigManager;
 import net.byws.selectiummod.config.ConfigJsonObj;
+import net.byws.selectiummod.config.KillTracker;
 
 public class DiscordConnection
 {
@@ -83,6 +85,8 @@ public class DiscordConnection
     private static final String DISCORD_WS_URL = "ws://localhost:8000/ws"; // wss://bywsdomain.xyz/ws
     private static final int MAX_MSG_SIZE = 500000;
     private static final long WS_UPDATE_INTERVAL = 80000000000L;
+    private static final TypeToken UPSERT_FORMAT = new TypeToken<Map<UUID, ConfigJsonObj.PlayerData>>(){};
+    private static final TypeToken REMOVE_FORMAT = new TypeToken<Set<UUID>>(){};
 
     private static DiscordConnection instance;
     private final Logger logger;
@@ -180,9 +184,8 @@ public class DiscordConnection
         {
             activeSession.socket.sendText(gson.toJson(Map.of(
                     "action", "update_player_data",
-                    "payload", Map.of("kills", 10)
+                    "payload", Map.of("kills", KillTracker.getInstance().serverSideKills())
             )), true);
-            //activeSession.socket.sendPong(StandardCharsets.UTF_8.encode(""));
             lastPushNanos = currentNanos;
         }
     }
@@ -195,7 +198,7 @@ public class DiscordConnection
             return;
         }
 
-        lastPushNanos = System.nanoTime(); // + WS_UPDATE_INTERVAL
+        lastPushNanos = System.nanoTime();
         session.opened.complete(null);
     }
 
@@ -238,9 +241,9 @@ public class DiscordConnection
 
             switch (message.get("action").getAsString())
             {
-                case "update_list_players" -> handleListUpsert(ConfigManager.getInstance(), message, true);
-                case "add_list_player", "edit_list_player" -> handleListUpsert(ConfigManager.getInstance(), message, false);
-                case "remove_list_player" -> handleListRemove(ConfigManager.getInstance(), message);
+                case "update_list_players" -> handleListUpsert(message, true);
+                case "add_list_player", "edit_list_player" -> handleListUpsert(message, false);
+                case "remove_list_player" -> handleListRemove(message);
             }
         }
         catch (Exception e)
@@ -249,11 +252,10 @@ public class DiscordConnection
         }
     }
 
-    private void handleListUpsert(ConfigManager configManager, JsonObject message, boolean removeMissing)
+    private void handleListUpsert(JsonObject message, boolean removeMissing)
     {
-        Map<UUID, ConfigJsonObj.PlayerData> serverPlayerList = gson.fromJson(message.get("payload"),
-                new TypeToken<Map<UUID, ConfigJsonObj.PlayerData>>(){}.getType());
-
+        Map<UUID, ConfigJsonObj.PlayerData> serverPlayerList = gson.fromJson(message.get("payload"), UPSERT_FORMAT.getType());
+        ConfigManager configManager = ConfigManager.getInstance();
         var clientPlayerList = configManager.getPlayerList();
 
         if (removeMissing)
@@ -280,14 +282,13 @@ public class DiscordConnection
         });
     }
 
-    private void handleListRemove(ConfigManager configManager, JsonObject message)
+    private void handleListRemove(JsonObject message)
     {
-        Map<UUID, ConfigJsonObj.PlayerData> serverPlayerList = gson.fromJson(message.get("payload"),
-                new TypeToken<Map<UUID, ConfigJsonObj.PlayerData>>(){}.getType());
-
+        Set<UUID> serverPlayerList = gson.fromJson(message.get("payload"), REMOVE_FORMAT.getType());
+        ConfigManager configManager = ConfigManager.getInstance();
         var clientPlayerList = configManager.getPlayerList();
 
-        serverPlayerList.forEach((playerUUID, updatedPlayer) ->
+        serverPlayerList.forEach((playerUUID) ->
         {
             ConfigJsonObj.PlayerData existingPlayer = clientPlayerList.get(playerUUID);
             if (existingPlayer != null) configManager.removeListPlayer(playerUUID, false);

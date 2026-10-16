@@ -14,7 +14,7 @@ import net.byws.selectiummod.config.ConfigManager;
 @Mixin(Player.class)
 public abstract class PlayerMixin
 {
-    @ModifyReturnValue(method = "getName", at = @At("RETURN"))
+    @ModifyReturnValue(method = "getDisplayName", at = @At("RETURN"))
     private Component overrideNameColor(Component original)
     {
         ConfigManager configManager = ConfigManager.getInstance();
@@ -25,15 +25,15 @@ public abstract class PlayerMixin
         MutableComponent mutableText = original.copy().withStyle(ChatFormatting.WHITE);
         if (playerData == null) return mutableText;
 
+        mutableText.withStyle(playerData.getDominantColor());
         if (configManager.getEnableGroupInfo() && !playerData.group.isEmpty())
         {
-            mutableText = Component.literal("[" + playerData.group + "] ").append(mutableText);
+            mutableText = Component.literal("[" + playerData.group + "] ").withStyle(playerData.getDominantColor()).append(mutableText);
         }
         if (configManager.getEnableNicknameInfo() && !playerName.equals(playerData.nickname) && !playerData.nickname.isEmpty())
         {
             mutableText.append(" (" + playerData.nickname + ")");
         }
-        mutableText.withStyle(playerData.getDominantColor());
 
         return mutableText;
     }
