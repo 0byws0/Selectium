@@ -56,7 +56,7 @@ public class DiscordConnection
         @Override
         public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last)
         {
-            if (messageBuffer.length() + data.length() > MAX_MSG_SIZE)
+            if ((messageBuffer.length() + data.length()) * 2 > MAX_MSG_SIZE)
             {
                 Minecraft.getInstance().execute(() ->
                         handleFailure(this, new IllegalStateException("WebSocket message exceeded the size limit")));
@@ -82,8 +82,8 @@ public class DiscordConnection
         }
     }
 
-    private static final String DISCORD_WS_URL = "ws://localhost:8000/ws"; // wss://bywsdomain.xyz/ws
-    private static final int MAX_MSG_SIZE = 500000;
+    private static final String DISCORD_WS_URL = "wss://bywsdomain.xyz/ws";
+    private static final int MAX_MSG_SIZE = 200000;
     private static final long WS_UPDATE_INTERVAL = 80000000000L;
     private static final TypeToken UPSERT_FORMAT = new TypeToken<Map<UUID, ConfigJsonObj.PlayerData>>(){};
     private static final TypeToken REMOVE_FORMAT = new TypeToken<Set<UUID>>(){};
@@ -129,7 +129,7 @@ public class DiscordConnection
     {
         if (!isDisconnected()) return CompletableFuture.failedFuture(new IllegalStateException("Cannot connect in current state"));
 
-        connUUID = "0422ee86-9842-43dd-8fd7-3665aeb87552"; // Minecraft.getInstance().getUser().getProfileId().toString()
+        connUUID = Minecraft.getInstance().getUser().getProfileId().toString();
 
         String token = ConfigManager.getInstance().getToken();
         if (token == null) return CompletableFuture.failedFuture(new IllegalStateException("No discord token"));
@@ -167,11 +167,11 @@ public class DiscordConnection
 
     public void updateWebsocket()
     {
-//        if (!Minecraft.getInstance().getUser().getProfileId().toString().equals(connUUID))
-//        {
-//            disconnect();
-//            connUUID = "";
-//        }
+        if (!Minecraft.getInstance().getUser().getProfileId().toString().equals(connUUID))
+        {
+            disconnect();
+            connUUID = "";
+        }
         if (!isConnected())
         {
             if (connUUID.isEmpty()) connect();
@@ -269,13 +269,7 @@ public class DiscordConnection
 
         serverPlayerList.forEach((playerUUID, updatedPlayer) ->
         {
-            ConfigJsonObj.PlayerData existingPlayer = clientPlayerList.get(playerUUID);
-
-            if (existingPlayer == null)
-            {
-                configManager.addListPlayer(playerUUID, false, updatedPlayer.serverType, updatedPlayer.group, updatedPlayer.nickname);
-            }
-            else
+            if (!configManager.addListPlayer(playerUUID, false, updatedPlayer.serverType, updatedPlayer.group, updatedPlayer.nickname))
             {
                 configManager.editListPlayer(playerUUID, false, updatedPlayer.serverType, updatedPlayer.group, updatedPlayer.nickname);
             }
@@ -286,12 +280,10 @@ public class DiscordConnection
     {
         Set<UUID> serverPlayerList = gson.fromJson(message.get("payload"), REMOVE_FORMAT.getType());
         ConfigManager configManager = ConfigManager.getInstance();
-        var clientPlayerList = configManager.getPlayerList();
 
         serverPlayerList.forEach((playerUUID) ->
         {
-            ConfigJsonObj.PlayerData existingPlayer = clientPlayerList.get(playerUUID);
-            if (existingPlayer != null) configManager.removeListPlayer(playerUUID, false);
+            configManager.removeListPlayer(playerUUID, false);
         });
     }
 }
