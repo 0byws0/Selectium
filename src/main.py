@@ -38,4 +38,4 @@ app.include_router(ws_router)
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=False, log_config=None,
-                forwarded_allow_ips="127.0.0.1", ws_max_size=819200) # temp ws limiting
+                forwarded_allow_ips="127.0.0.1", ws_max_size=100000) # temp ws limiting

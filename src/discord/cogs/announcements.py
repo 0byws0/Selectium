@@ -18,10 +18,10 @@ class Announcements(commands.Cog):
         title: str
 
     DISPLAYS = [DisplayInfo(GUILD_LIST, GUILD_CHANNEL_ID, "guild_msg_id", "# SELECTIUM PLAYER LIST <:Selectium:1345924666526793848>"),
-                DisplayInfo(KILL_LEADERBOARD, LEADERBOARD_CHANNEL_ID, "leaderboard_msg_id", "# TARGETS ELIMINATED LEADERBOARD"),
                 DisplayInfo(Player.Category.ALLY, ALLY_CHANNEL_ID, "ally_msg_id", "# ALLY LIST <:Cubecraft:1468618358982443111>"),
                 DisplayInfo(Player.Category.NEUTRAL, NEUTRAL_CHANNEL_ID, "neutral_msg_id", "# NEUTRAL LIST 🤚🏻"),
-                DisplayInfo(Player.Category.TARGET, TARGET_CHANNEL_ID, "target_msg_id", "# TARGET LIST ⚔️")]
+                DisplayInfo(Player.Category.TARGET, TARGET_CHANNEL_ID, "target_msg_id", "# TARGET LIST ⚔️"),
+                DisplayInfo(KILL_LEADERBOARD, LEADERBOARD_CHANNEL_ID, "leaderboard_msg_id", "# TARGETS ELIMINATED LEADERBOARD")]
 
     def __init__(self, bot):
         self.bot = bot
@@ -70,14 +70,11 @@ class Announcements(commands.Cog):
             match display.group:
                 case self.GUILD_LIST:
                     display_str = display.title + "\n" + "".join(
-                        (
-                                f"## {subgroup}\n" +
-                                " ".join(
-                                    f"`{alias} = {' / '.join(sorted(members, key=str.lower))}`" if alias else
-                                    " ".join(f"`{m}`" for m in sorted(members, key=str.lower))
-                                    for alias, members in sorted(aliases.items(), key=lambda x: (x[0] is not None, (x[0] or "").lower()))
-                                ) + "\n\n"
-                        )
+                        (f"## {subgroup}\n" + " ".join(
+                            f"`{alias} = {' / '.join(sorted(members, key=str.lower))}`" if alias else
+                            " ".join(f"`{m}`" for m in sorted(members, key=str.lower))
+                            for alias, members in sorted(aliases.items(), key=lambda x: (x[0] is not None, (x[0] or "").lower()))
+                        ) + "\n\n")
                         for subgroup, aliases in subgroups.items()
                     )
                 case self.KILL_LEADERBOARD:
@@ -86,19 +83,15 @@ class Announcements(commands.Cog):
                         for subgroup, aliases in sorted(subgroups.items(), key=lambda x: x[0], reverse=True)
                         for alias, members in sorted(aliases.items(), key=lambda x: (x[0] is not None, (x[0] or "").lower()))
                         for player in ([f"{alias} = {' / '.join(sorted(members, key=str.lower))}"] if alias
-                                         else [f"{m}" for m in sorted(members, key=str.lower)]
-                        )
+                                       else [f"{m}" for m in sorted(members, key=str.lower)])
                     ) + "\n```"
                 case _:
                     display_str = display.title + "\n" + "".join(
-                        (
-                                f"## {subgroup}\n" +
-                                " ".join(
-                                    f"`{alias} = {' / '.join(sorted(members, key=str.lower))}`" if alias else
-                                    " ".join(f"`{m}`" for m in sorted(members, key=str.lower))
-                                    for alias, members in sorted(aliases.items(), key=lambda x: (x[0] is not None, (x[0] or "").lower()))
-                                ) + "\n\n"
-                        )
+                        (f"## {subgroup}\n" + " ".join(
+                            f"`{alias} = {' / '.join(sorted(members, key=str.lower))}`" if alias else
+                            " ".join(f"`{m}`" for m in sorted(members, key=str.lower))
+                            for alias, members in sorted(aliases.items(), key=lambda x: (x[0] is not None, (x[0] or "").lower()))
+                        ) + "\n\n")
                         for subgroup, aliases in sorted(subgroups.items(), key=lambda x: (x[0] is self.NO_SUBGROUP, (x[0] or "").lower()))
                     )
 

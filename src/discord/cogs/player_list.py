@@ -174,6 +174,12 @@ class PlayerList(commands.Cog):
     async def edit_token_autocomplete(self, interaction, current):
         return [app_commands.Choice(name="- (remove)", value="-")] if not current or current in ["-", "- (remove)"] else []
 
+    @player_edit.autocomplete("kills")
+    async def edit_discord_id_autocomplete(self, interaction, current):
+        return await self.discord_autocomplete(DatabaseManager.Fields.KILLS, current,
+                                               [app_commands.Choice(name="- (remove)", value="-")]
+                                               if not current or current in ["-", "- (remove)"] else [])
+
     async def _update_player_discord(self, guild, player_data):
         if player_data.token_hash is None and player_data.dc_id is not None:
             try:

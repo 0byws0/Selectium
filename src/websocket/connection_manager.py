@@ -16,7 +16,9 @@ class ConnectionManager:
                         if not isinstance(payload_data, (list, tuple)): payload_data = [payload_data]
 
                         return {str(player_data.mc_uuid):
-                                    {"serverType":player_data.cat.name,
+                                    {"shared":True, # old data
+                                     "type":player_data.cat.name, # old data
+                                     "serverType":player_data.cat.name,
                                      "group":player_data.org,
                                      "nickname":player_data.alias}
                                 for player_data in payload_data}

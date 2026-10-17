@@ -32,8 +32,10 @@ async def websocket_endpoint(websocket: WebSocket, conn_uuid = Depends(verify_he
 
             match received_data["action"]:
                 case "update_player_data":
+                    updated_kills = (((await database.get_player(DatabaseManager.Fields.UUID, conn_uuid))[0].vanquishes or 0) +
+                                     received_data["payload"]["kills"])
                     await database.update_player(DatabaseManager.Fields.UUID, conn_uuid,
-                                                 **{DatabaseManager.Fields.KILLS.value:received_data["payload"]["kills"]})
+                                                 **{DatabaseManager.Fields.KILLS.value:updated_kills})
 
     except Exception:
         await conn_manager.disconnect(conn_uuid)
