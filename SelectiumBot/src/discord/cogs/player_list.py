@@ -3,6 +3,7 @@ from discord import app_commands
 from discord.ext import commands, tasks
 import Paginator
 from uuid import UUID
+import unicodedata
 import secrets
 
 from src.config import GUILD_ID, MOD_ROLE_IDS, BOT_ROLE_IDS
@@ -23,12 +24,12 @@ class PlayerList(commands.Cog):
     def _player_info_embed(player_data: Player) -> discord.Embed:
         info_embed = discord.Embed(title="Selectium Database", color=player_data.cat.color)
 
-        info_embed.add_field(name="Username:", value=player_data.mc_name, inline=False)
-        info_embed.add_field(name="Alt:", value=player_data.alias, inline=False)
-        info_embed.add_field(name="Clan:", value=player_data.org, inline=False)
-        info_embed.add_field(name="Category:", value=player_data.cat.name, inline=False)
+        info_embed.add_field(name="Username:", value=f"`{player_data.mc_name}`", inline=False)
+        info_embed.add_field(name="Alt:", value=f"`{player_data.alias}`", inline=False)
+        info_embed.add_field(name="Clan:", value=f"`{player_data.org}`", inline=False)
+        info_embed.add_field(name="Category:", value=f"`{player_data.cat.name}`", inline=False)
         info_embed.add_field(name="Kills:", value=player_data.vanquishes, inline=False)
-        info_embed.add_field(name="UUID:", value=player_data.mc_uuid, inline=False)
+        info_embed.add_field(name="UUID:", value=f"`{player_data.mc_uuid}`", inline=False)
         info_embed.add_field(name="Discord Id:", value=player_data.dc_id, inline=False)
         info_embed.add_field(name="Token:", value="Active" if player_data.token_hash else None, inline=False)
 
@@ -77,14 +78,14 @@ class PlayerList(commands.Cog):
     @app_commands.guilds(discord.Object(GUILD_ID))
     @app_commands.checks.has_any_role(*BOT_ROLE_IDS)
     async def player_edit(self, interaction, field: DatabaseManager.Fields, field_input: str, alt: str = None, clan: str = None,
-                          category: Player.Category = None, discord_id: str = None, token: str = None, kills: str = None):
+                          category: Player.Category = None, discord: str = None, token: str = None, kills: str = None):
         await interaction.response.defer()
 
         upd_params = {}
         if alt is not None: upd_params[DatabaseManager.Fields.ALT.value] = alt if alt != "-" else None
         if clan is not None: upd_params[DatabaseManager.Fields.CLAN.value] = clan if clan != "-" else None
         if category is not None: upd_params[DatabaseManager.Fields.CATEGORY.value] = category
-        if discord_id is not None: upd_params[DatabaseManager.Fields.DISCORD.value] = discord_id if discord_id.isdigit() else None
+        if discord is not None: upd_params[DatabaseManager.Fields.DISCORD.value] = discord if discord.isdigit() else None
         if token is not None: upd_params[DatabaseManager.Fields.TOKEN.value] = None
         if kills is not None: upd_params[DatabaseManager.Fields.KILLS.value] = kills if kills.isdigit() else None
 
@@ -120,11 +121,13 @@ class PlayerList(commands.Cog):
         else:
             await interaction.followup.send(f"{field.name.capitalize()} `{field_input}` not found database")
 
-    async def discord_autocomplete(self, field, current, choices):
+    async def discord_autocomplete(self, field, interaction, current, choices):
         if not field or not current or field == DatabaseManager.Fields.TOKEN: return choices
 
-        field_data = await self.bot.db.get_field(field)
-        cur_input = current.lower()
+        # field_data = await self.bot.db.get_field(field)
+        field_data = interaction.guild.members if field == DatabaseManager.Fields.DISCORD \
+            else await self.bot.db.get_field(field)
+        current = unicodedata.normalize("NFKD", current).lower()
 
         for item in field_data:
             match field:
@@ -132,13 +135,15 @@ class PlayerList(commands.Cog):
                     choice_value = item.name
                     choice_name = choice_value
                 case DatabaseManager.Fields.DISCORD:
-                    choice_value = str(item)
-                    choice_name = dc_name.display_name if (dc_name := self.bot.get_user(item)) else choice_value
+                    # choice_value = str(item)
+                    # choice_name = dc_name.display_name if (dc_name := self.bot.get_user(item)) else choice_value
+                    choice_value = str(item.id)
+                    choice_name = item.display_name
                 case _:
                     choice_value = str(item)
                     choice_name = choice_value
 
-            if cur_input in choice_name.lower():
+            if current in unicodedata.normalize("NFKD", choice_name).lower():
                 choices.append(app_commands.Choice(name=choice_name, value=choice_value))
             if len(choices) >= 25:
                 break
@@ -149,24 +154,24 @@ class PlayerList(commands.Cog):
     @player_info.autocomplete("field_input")
     @player_remove.autocomplete("field_input")
     async def field_input_autocomplete(self, interaction, current):
-        return await self.discord_autocomplete(DatabaseManager.Fields(field_name)
-                                               if (field_name := interaction.namespace.field) else None, current, [])
+        return await self.discord_autocomplete(DatabaseManager.Fields(field_name) if (field_name := interaction.namespace.field) else None,
+                                               interaction, current, [])
 
     @player_edit.autocomplete("alt")
     async def edit_alt_autocomplete(self, interaction, current):
-        return await self.discord_autocomplete(DatabaseManager.Fields.ALT, current,
+        return await self.discord_autocomplete(DatabaseManager.Fields.ALT, interaction, current,
                                                [app_commands.Choice(name="- (remove)", value="-")]
                                                if not current or current in ["-", "- (remove)"] else [])
 
     @player_edit.autocomplete("clan")
     async def edit_clan_autocomplete(self, interaction, current):
-        return await self.discord_autocomplete(DatabaseManager.Fields.CLAN, current,
+        return await self.discord_autocomplete(DatabaseManager.Fields.CLAN, interaction, current,
                                                [app_commands.Choice(name="- (remove)", value="-")]
                                                if not current or current in ["-", "- (remove)"] else [])
 
-    @player_edit.autocomplete("discord_id")
-    async def edit_discord_id_autocomplete(self, interaction, current):
-        return await self.discord_autocomplete(DatabaseManager.Fields.DISCORD, current,
+    @player_edit.autocomplete("discord")
+    async def edit_discord_autocomplete(self, interaction, current):
+        return await self.discord_autocomplete(DatabaseManager.Fields.DISCORD, interaction, current,
                                                [app_commands.Choice(name="- (remove)", value="-")]
                                                if not current or current in ["-", "- (remove)"] else [])
 
@@ -175,8 +180,8 @@ class PlayerList(commands.Cog):
         return [app_commands.Choice(name="- (remove)", value="-")] if not current or current in ["-", "- (remove)"] else []
 
     @player_edit.autocomplete("kills")
-    async def edit_discord_id_autocomplete(self, interaction, current):
-        return await self.discord_autocomplete(DatabaseManager.Fields.KILLS, current,
+    async def edit_kills_autocomplete(self, interaction, current):
+        return await self.discord_autocomplete(DatabaseManager.Fields.KILLS, interaction, current,
                                                [app_commands.Choice(name="- (remove)", value="-")]
                                                if not current or current in ["-", "- (remove)"] else [])
 
@@ -194,7 +199,7 @@ class PlayerList(commands.Cog):
                 pass
         return {}
 
-    @tasks.loop(minutes=1)
+    @tasks.loop(minutes=30)
     async def update(self):
         try: guild = self.bot.get_guild(GUILD_ID) or await self.bot.fetch_guild(GUILD_ID)
         except Exception: return
