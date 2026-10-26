@@ -1,0 +1,230 @@
+import discord
+from discord import app_commands
+from discord.ext import commands, tasks
+import Paginator
+from uuid import UUID
+import secrets
+
+from src.config import GUILD_ID, MOD_ROLE_IDS, BOT_ROLE_IDS
+from src.database.database_manager import DatabaseManager
+from src.websocket.connection_manager import ConnectionManager
+from src.database.player_handler import Player
+
+class PlayerList(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+        self.upd_last_uuid = None
+        self.update.start()
+
+    def cog_unload(self):
+        self.update.cancel()
+
+    @staticmethod
+    def _player_info_embed(player_data: Player) -> discord.Embed:
+        info_embed = discord.Embed(title="Selectium Database", color=player_data.cat.color)
+
+        info_embed.add_field(name="Username:", value=player_data.mc_name, inline=False)
+        info_embed.add_field(name="Alt:", value=player_data.alias, inline=False)
+        info_embed.add_field(name="Clan:", value=player_data.org, inline=False)
+        info_embed.add_field(name="Category:", value=player_data.cat.name, inline=False)
+        info_embed.add_field(name="Kills:", value=player_data.vanquishes, inline=False)
+        info_embed.add_field(name="UUID:", value=player_data.mc_uuid, inline=False)
+        info_embed.add_field(name="Discord Id:", value=player_data.dc_id, inline=False)
+        info_embed.add_field(name="Token:", value="Active" if player_data.token_hash else None, inline=False)
+
+        return info_embed
+
+    @staticmethod
+    def _token_embed(mc_name: str, mc_uuid: UUID, token: str) -> discord.Embed:
+        info_embed = discord.Embed(title="Selectium Mod", description=
+        "🇺🇸:\n You are eligible to connect the optional clan mod to Discord. "
+        "For more information and setup instructions, visit the #sl-mod channel. "
+        "If you encounter any issues, please message byws.\n\n"
+        "🇲🇽:\n Puedes conectar el mod opcional de clan a Discord. "
+        "Para obtener más información e instrucciones de configuración, visita el canal #sl-mod. "
+        "Si encuentras algún problema, envía un mensaje a byws.")
+
+        info_embed.add_field(name="Mod Link:", value="https://modrinth.com/mod/selectium-mod", inline=False)
+        info_embed.add_field(name="Minecraft Account:", value=f"{mc_name} ({mc_uuid})", inline=False)
+        info_embed.add_field(name="Token (DO NOT SHARE / NO COMPARTIR):", value=token, inline=False)
+
+        return info_embed
+
+    @app_commands.command(name="player_add")
+    @app_commands.guilds(discord.Object(GUILD_ID))
+    @app_commands.checks.has_any_role(*BOT_ROLE_IDS)
+    async def player_add(self, interaction, category: Player.Category, name_or_uuid: str):
+        await interaction.response.defer()
+
+        try:
+            player_uuid = UUID(name_or_uuid)
+            player_username = None
+        except ValueError:
+            player_uuid = None
+            player_username = name_or_uuid
+
+        try:
+            player_data = await Player.create(player_uuid, player_username, category)
+            if await self.bot.db.insert_player(player_data):
+                await interaction.followup.send(f"Player `{player_data.mc_name}` added")
+                await self.bot.conn_manager.broadcast(ConnectionManager.Actions.LIST_ADD, player_data)
+            else:
+                await interaction.followup.send(f"Player `{player_data.mc_name}` already in database")
+        except ValueError:
+            await interaction.followup.send(f"Failed to add player `{name_or_uuid}`")
+
+    @app_commands.command(name="player_edit")
+    @app_commands.guilds(discord.Object(GUILD_ID))
+    @app_commands.checks.has_any_role(*BOT_ROLE_IDS)
+    async def player_edit(self, interaction, field: DatabaseManager.Fields, field_input: str, alt: str = None, clan: str = None,
+                          category: Player.Category = None, discord_id: str = None, token: str = None, kills: str = None):
+        await interaction.response.defer()
+
+        upd_params = {}
+        if alt is not None: upd_params[DatabaseManager.Fields.ALT.value] = alt if alt != "-" else None
+        if clan is not None: upd_params[DatabaseManager.Fields.CLAN.value] = clan if clan != "-" else None
+        if category is not None: upd_params[DatabaseManager.Fields.CATEGORY.value] = category
+        if discord_id is not None: upd_params[DatabaseManager.Fields.DISCORD.value] = discord_id if discord_id.isdigit() else None
+        if token is not None: upd_params[DatabaseManager.Fields.TOKEN.value] = None
+        if kills is not None: upd_params[DatabaseManager.Fields.KILLS.value] = kills if kills.isdigit() else None
+
+        if upd_params:
+            if player_data_list := await self.bot.db.update_player(field, field_input, **upd_params):
+                await interaction.followup.send(f"Player(s) {' '.join([f'`{player_data.mc_name}`' for player_data in player_data_list])} updated")
+                if any(f is not None for f in (alt, clan, category)): await self.bot.conn_manager.broadcast(ConnectionManager.Actions.LIST_EDIT, player_data_list)
+            else:
+                await interaction.followup.send(f"{field.name.capitalize()} `{field_input}` not found in database")
+        else:
+            await interaction.followup.send("Nothing provided to update")
+
+    @app_commands.command(name="player_info")
+    @app_commands.guilds(discord.Object(GUILD_ID))
+    @app_commands.checks.has_any_role(*BOT_ROLE_IDS)
+    async def player_info(self, interaction, field: DatabaseManager.Fields, field_input: str):
+        await interaction.response.defer()
+
+        if player_data_list := await self.bot.db.get_player(field, field_input):
+            await Paginator.Simple().start(interaction, pages=[self._player_info_embed(player_data) for player_data in player_data_list])
+        else:
+            await interaction.followup.send(f"{field.name.capitalize()} `{field_input}` not found in database")
+
+    @app_commands.command(name="player_remove")
+    @app_commands.guilds(discord.Object(GUILD_ID))
+    @app_commands.checks.has_any_role(*BOT_ROLE_IDS)
+    async def player_remove(self, interaction, field: DatabaseManager.Fields, field_input: str):
+        await interaction.response.defer()
+
+        if player_data_list := await self.bot.db.remove_player(field, field_input):
+            await interaction.followup.send(f"Player(s) {' '.join([f'`{player_data.mc_name}`' for player_data in player_data_list])} removed")
+            await self.bot.conn_manager.broadcast(ConnectionManager.Actions.LIST_REMOVE, player_data_list)
+        else:
+            await interaction.followup.send(f"{field.name.capitalize()} `{field_input}` not found database")
+
+    async def discord_autocomplete(self, field, current, choices):
+        if not field or not current or field == DatabaseManager.Fields.TOKEN: return choices
+
+        field_data = await self.bot.db.get_field(field)
+        cur_input = current.lower()
+
+        for item in field_data:
+            match field:
+                case DatabaseManager.Fields.CATEGORY:
+                    choice_value = item.name
+                    choice_name = choice_value
+                case DatabaseManager.Fields.DISCORD:
+                    choice_value = str(item)
+                    choice_name = dc_name.display_name if (dc_name := self.bot.get_user(item)) else choice_value
+                case _:
+                    choice_value = str(item)
+                    choice_name = choice_value
+
+            if cur_input in choice_name.lower():
+                choices.append(app_commands.Choice(name=choice_name, value=choice_value))
+            if len(choices) >= 25:
+                break
+
+        return choices
+
+    @player_edit.autocomplete("field_input")
+    @player_info.autocomplete("field_input")
+    @player_remove.autocomplete("field_input")
+    async def field_input_autocomplete(self, interaction, current):
+        return await self.discord_autocomplete(DatabaseManager.Fields(field_name)
+                                               if (field_name := interaction.namespace.field) else None, current, [])
+
+    @player_edit.autocomplete("alt")
+    async def edit_alt_autocomplete(self, interaction, current):
+        return await self.discord_autocomplete(DatabaseManager.Fields.ALT, current,
+                                               [app_commands.Choice(name="- (remove)", value="-")]
+                                               if not current or current in ["-", "- (remove)"] else [])
+
+    @player_edit.autocomplete("clan")
+    async def edit_clan_autocomplete(self, interaction, current):
+        return await self.discord_autocomplete(DatabaseManager.Fields.CLAN, current,
+                                               [app_commands.Choice(name="- (remove)", value="-")]
+                                               if not current or current in ["-", "- (remove)"] else [])
+
+    @player_edit.autocomplete("discord_id")
+    async def edit_discord_id_autocomplete(self, interaction, current):
+        return await self.discord_autocomplete(DatabaseManager.Fields.DISCORD, current,
+                                               [app_commands.Choice(name="- (remove)", value="-")]
+                                               if not current or current in ["-", "- (remove)"] else [])
+
+    @player_edit.autocomplete("token")
+    async def edit_token_autocomplete(self, interaction, current):
+        return [app_commands.Choice(name="- (remove)", value="-")] if not current or current in ["-", "- (remove)"] else []
+
+    @player_edit.autocomplete("kills")
+    async def edit_discord_id_autocomplete(self, interaction, current):
+        return await self.discord_autocomplete(DatabaseManager.Fields.KILLS, current,
+                                               [app_commands.Choice(name="- (remove)", value="-")]
+                                               if not current or current in ["-", "- (remove)"] else [])
+
+    async def _update_player_discord(self, guild, player_data):
+        if player_data.token_hash is None and player_data.dc_id is not None:
+            try:
+                dc_member = guild.get_member(player_data.dc_id) or await guild.fetch_member(player_data.dc_id)
+
+                if any(member_role.id in MOD_ROLE_IDS for member_role in dc_member.roles):
+                    token = secrets.token_hex(32)
+
+                    await dc_member.send(embed=self._token_embed(player_data.mc_name, player_data.mc_uuid, token))
+                    return {DatabaseManager.Fields.TOKEN.value:token}
+            except discord.DiscordException:
+                pass
+        return {}
+
+    @tasks.loop(minutes=1)
+    async def update(self):
+        try: guild = self.bot.get_guild(GUILD_ID) or await self.bot.fetch_guild(GUILD_ID)
+        except Exception: return
+
+        players = await self.bot.db.get_player()
+        upd_count = -next((i for i, p in enumerate(players) if p.mc_uuid == self.upd_last_uuid), 0)
+        self.upd_last_uuid = None
+
+        for player_data in players:
+            upd_params = {}
+
+            if self.upd_last_uuid is None:
+                if upd_count >= 50:
+                    self.upd_last_uuid = player_data.mc_uuid
+                elif upd_count >= 0:
+                    await player_data.update()
+                    upd_params[DatabaseManager.Fields.USERNAME.value] = player_data.mc_name
+                upd_count += 1
+
+            upd_params.update(await self._update_player_discord(guild, player_data))
+
+            if upd_params:
+                await self.bot.db.update_player(DatabaseManager.Fields.UUID, player_data.mc_uuid, **upd_params)
+
+            await self.bot.get_cog("Announcements").append_list_player(guild, player_data)
+        await self.bot.get_cog("Announcements").push_list_update()
+
+    @update.before_loop
+    async def before_update(self):
+        await self.bot.wait_until_ready()
+
+async def setup(bot):
+    await bot.add_cog(PlayerList(bot))

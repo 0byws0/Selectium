@@ -1,0 +1,215 @@
+import aiosqlite
+from enum import Enum
+from uuid import UUID
+import hashlib
+
+from src.database.player_handler import Player
+from src.database.guild_handler import GuildConfig
+
+class DatabaseManager:
+    class Fields(Enum):
+        UUID = "mc_uuid"
+        USERNAME = "mc_name"
+        CATEGORY = "cat"
+        CLAN = "org"
+        ALT = "alias"
+        DISCORD = "dc_id"
+        TOKEN = "token_hash"
+        KILLS = "vanquishes"
+
+        def convert(self, field_input):
+            if field_input is None: return None
+            try:
+                match self:
+                    case self.UUID:
+                        return field_input.bytes if isinstance(field_input, UUID) else UUID(field_input).bytes
+                    case self.USERNAME | self.CLAN | self.ALT:
+                        return str(field_input)
+                    case self.CATEGORY:
+                        try:
+                            return Player.Category[field_input].name
+                        except KeyError:
+                            return Player.Category(field_input).name
+                    case self.DISCORD | self.KILLS:
+                        return int(field_input)
+                    case self.TOKEN:
+                        return field_input if (isinstance(field_input, bytes) and len(field_input) == 32) else \
+                            (hashlib.sha256(field_input.encode("utf-8") if isinstance(field_input, str) else field_input).digest())
+            except (ValueError, TypeError, KeyError, AttributeError):
+                return None
+
+        def deconvert(self, field_input):
+            if field_input is None: return None
+            try:
+                match self:
+                    case self.UUID:
+                        return UUID(bytes=field_input) if isinstance(field_input, bytes) else UUID(field_input)
+                    case self.USERNAME | self.CLAN | self.ALT:
+                        return str(field_input)
+                    case self.CATEGORY:
+                        return Player.Category[field_input]
+                    case self.DISCORD | self.KILLS:
+                        return int(field_input)
+                    case self.TOKEN:
+                        return field_input
+            except (ValueError, TypeError, KeyError, AttributeError):
+                return None
+
+        def collation(self):
+            return "COLLATE NOCASE" if self in (self.USERNAME, self.ALT, self.CLAN) else ""
+
+    def __init__(self, db_path: str = "data/database.db"):
+        self.conn = None
+        self.db_path = db_path
+
+    async def connect(self):
+        self.conn = await aiosqlite.connect(self.db_path, timeout=10)
+        # self.conn.row_factory = aiosqlite.Row
+
+        await self.conn.execute("PRAGMA journal_mode=WAL")
+        await self.conn.execute(f"""CREATE TABLE IF NOT EXISTS players (
+                        {self.Fields.UUID.value} BLOB PRIMARY KEY,
+                        {self.Fields.USERNAME.value} TEXT NOT NULL,
+                        {self.Fields.CATEGORY.value} TEXT CHECK ({self.Fields.CATEGORY.value} IN ({", ".join(f"'{cat.name}'" for cat in Player.Category)})),
+                        {self.Fields.CLAN.value} TEXT,
+                        {self.Fields.ALT.value} TEXT,
+                        {self.Fields.DISCORD.value} INTEGER,
+                        {self.Fields.TOKEN.value} BLOB,
+                        {self.Fields.KILLS.value} INTEGER)""")
+
+        await self.conn.execute(f"""CREATE TABLE IF NOT EXISTS server (
+                                id INTEGER PRIMARY KEY,
+                                guild_msg_id INTEGER,
+                                leaderboard_msg_id INTEGER,
+                                ally_msg_id INTEGER,
+                                neutral_msg_id INTEGER,
+                                target_msg_id INTEGER)""")
+
+        # await self.conn.execute(f"ALTER TABLE players ADD COLUMN {self.Fields.KILLS.value} INTEGER")
+        # await self.conn.execute(f"ALTER TABLE server ADD COLUMN guild_msg_id INTEGER")
+        # await self.conn.execute(f"ALTER TABLE server ADD COLUMN leaderboard_msg_id INTEGER")
+        # await self.conn.execute(f"ALTER TABLE server DROP COLUMN guild_org_msg_id")
+
+        await self.conn.commit()
+
+    async def close(self):
+        await self.conn.close()
+
+    def _row_to_player(self, row) -> Player:
+        return Player(self.Fields.UUID.deconvert(row[0]),
+                      self.Fields.USERNAME.deconvert(row[1]),
+                      self.Fields.CATEGORY.deconvert(row[2]),
+                      self.Fields.CLAN.deconvert(row[3]),
+                      self.Fields.ALT.deconvert(row[4]),
+                      self.Fields.DISCORD.deconvert(row[5]),
+                      self.Fields.TOKEN.deconvert(row[6]),
+                      self.Fields.KILLS.deconvert(row[7]))
+
+    async def insert_player(self, player_data: Player):
+        cur = await self.conn.execute(f"INSERT INTO players "
+                                      f"VALUES (:mc_uuid, :mc_name, :cat, :org, :alias, :dc_id, :token_hash, :vanquishes) "
+                                      f"ON CONFLICT ({self.Fields.UUID.value}) DO NOTHING",
+                                      {"mc_uuid": player_data.mc_uuid.bytes,
+                                       "mc_name": player_data.mc_name,
+                                       "cat": player_data.cat.name,
+                                       "org": player_data.org,
+                                       "alias": player_data.alias,
+                                       "dc_id": player_data.dc_id,
+                                       "token_hash":player_data.token_hash,
+                                       "vanquishes":player_data.vanquishes})
+
+        inserted = (cur.rowcount != 0)
+        await self.conn.commit()
+
+        return inserted
+
+    async def update_player(self, field: Fields, field_input, **updates):
+        if not isinstance(field, self.Fields): raise TypeError("field is not a valid Fields enum")
+
+        field_input = field.convert(field_input)
+        database_columns = [f.value for f in self.Fields]
+        set_clauses = []
+        payload = {"input":field_input}
+
+        for column, col_input in updates.items():
+            if column in database_columns:
+                set_clauses.append(f"{column}=:{column}")
+                payload[column] = self.Fields(column).convert(col_input)
+
+        if not set_clauses: raise TypeError("No parameters provided")
+
+        cur = await self.conn.execute(f"UPDATE players SET "
+                    f"{', '.join(set_clauses)} "
+                    f"WHERE {field.value}=:input "
+                    f"{field.collation()} "
+                    f"RETURNING *",
+                    payload)
+
+        rows = await cur.fetchall()
+        await self.conn.commit()
+        return [self._row_to_player(row) for row in rows]
+
+    async def get_field(self, field: Fields):
+        if not isinstance(field, self.Fields): raise TypeError("field is not a valid Fields enum")
+        cur = await self.conn.execute(f"SELECT DISTINCT {field.value} from players "
+                                      f"WHERE {field.value} IS NOT NULL")
+        rows = await cur.fetchall()
+        return [field.deconvert(row[0]) for row in rows]
+
+    async def get_player(self, field: Fields = None, field_input = None):
+        if field is None:
+            cur = await self.conn.execute(f"SELECT * FROM players ORDER BY {self.Fields.UUID.value}")
+        else:
+            if not isinstance(field, self.Fields): raise TypeError("field is not a valid Fields enum")
+
+            field_input = field.convert(field_input)
+            cur = await self.conn.execute(f"SELECT * FROM players "
+                        f"WHERE {field.value}=:input "
+                        f"{field.collation()} "
+                        f"ORDER BY {self.Fields.UUID.value}",
+                        {"input": field_input})
+
+        rows = await cur.fetchall()
+        return [self._row_to_player(row) for row in rows]
+
+    async def remove_player(self, field: Fields, field_input):
+        if not isinstance(field, self.Fields): raise TypeError("field is not a valid Fields enum")
+
+        field_input = field.convert(field_input)
+        cur = await self.conn.execute(f"DELETE FROM players "
+                    f"WHERE {field.value}=:input "
+                    f"{field.collation()} "
+                    f"RETURNING *",
+                    {"input":field_input})
+
+        rows = await cur.fetchall()
+        await self.conn.commit()
+
+        return [self._row_to_player(row) for row in rows]
+
+    async def insert_server_data(self, guild_msg_id: int = None, leaderboard_msg_id: int = None,
+                                 ally_msg_id: int = None, neutral_msg_id: int = None, target_msg_id: int = None):
+        if all(id is None for id in (guild_msg_id, leaderboard_msg_id, ally_msg_id, neutral_msg_id, target_msg_id)): raise TypeError("No parameters provided")
+
+        await self.conn.execute("INSERT INTO server "
+                                "VALUES (1, :guild_msg_id, :leaderboard_msg_id, :ally_msg_id, :neutral_msg_id, :target_msg_id) "
+                                "ON CONFLICT (id) DO UPDATE SET "
+                                "guild_msg_id=COALESCE(:guild_msg_id, guild_msg_id), "
+                                "leaderboard_msg_id=COALESCE(:leaderboard_msg_id, leaderboard_msg_id), "
+                                "ally_msg_id=COALESCE(:ally_msg_id, ally_msg_id), "
+                                "neutral_msg_id=COALESCE(:neutral_msg_id, neutral_msg_id), "
+                                "target_msg_id=COALESCE(:target_msg_id, target_msg_id)",
+                                {"guild_msg_id": guild_msg_id,
+                                 "leaderboard_msg_id": leaderboard_msg_id,
+                                 "ally_msg_id": ally_msg_id,
+                                 "neutral_msg_id": neutral_msg_id,
+                                 "target_msg_id": target_msg_id})
+        await self.conn.commit()
+
+    async def get_server_data(self):
+        cur = await self.conn.execute("SELECT guild_msg_id, leaderboard_msg_id, ally_msg_id, neutral_msg_id, target_msg_id "
+                                      "FROM server WHERE id=1")
+
+        row = await cur.fetchone()
+        if row: return GuildConfig(row[0], row[1], row[2], row[3], row[4])
+        return GuildConfig(None, None, None, None, None)
