@@ -1,6 +1,0 @@
-[submodule "SelectiumMod"]
-	path = SelectiumMod
-	url = git@github.com:0byws0/SelectiumMod.git
-[submodule "SelectiumBot"]
-	path = SelectiumBot
-	url = git@github.com:0byws0/SelectiumBot.git
