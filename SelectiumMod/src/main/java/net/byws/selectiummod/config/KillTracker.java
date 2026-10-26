@@ -142,10 +142,7 @@ public final class KillTracker
             {
                 configManager.setKills(configManager.getKills(true) + 1, true);
             }
-            else if (ConfigJsonObj.Category.TARGET.equals(player.serverType))
-            {
-                ++serverSideKillCount;
-            }
+            if (ConfigJsonObj.Category.TARGET.equals(player.serverType)) ++serverSideKillCount;
 
             break;
         }
