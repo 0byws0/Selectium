@@ -1,0 +1,3 @@
+[submodule "SelectiumMod"]
+	path = SelectiumMod
+	url = git@github.com:0byws0/SelectiumMod.git
