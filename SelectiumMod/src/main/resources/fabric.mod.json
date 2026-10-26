@@ -1,0 +1,31 @@
+{
+	"schemaVersion": 1,
+	"id": "selectium-mod",
+	"version": "${version}",
+	"name": "Selectium Mod",
+	"description": "A client-side mod that allows customization of player nametag colors, with features for both individual users and organized groups.",
+	"authors": [
+		"Byws"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "MIT",
+	"icon": "assets/selectium-mod/Selectium.png",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"net.byws.selectiummod.SelectiumMod"
+		]
+	},
+	"mixins": [
+		"selectium-mod.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.18.4",
+		"minecraft": ">=1.21.10 <26.1",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}

@@ -1,0 +1,59 @@
+{
+  "commands.selectium-mod.playerAdd.added": "%1$s añadido a la lista como %2$s",
+  "commands.selectium-mod.playerAdd.failed": "%1$s ya está en la lista",
+  "commands.selectium-mod.playerAdd.invalid": "UUID no válido o ya está en la lista",
+
+  "commands.selectium-mod.playerEdit.edited": "%1$s cambiado a %2$s",
+  "commands.selectium-mod.playerEdit.failed": "%1$s no está en la lista",
+  "commands.selectium-mod.playerEdit.invalid": "UUID no válido o no está en la lista",
+
+  "commands.selectium-mod.playerRemove.removed": "%1$s eliminado de la lista",
+  "commands.selectium-mod.playerRemove.failed": "%1$s no está en la lista",
+  "commands.selectium-mod.playerRemove.invalid": "UUID no válido o no está en la lista",
+
+  "commands.selectium-mod.playerGroupSet.edited": "Grupo de %1$s establecido como %2$s",
+  "commands.selectium-mod.playerGroupSet.removed": "Grupo de %1$s eliminado",
+  "commands.selectium-mod.playerGroupSet.failed": "%1$s no está en la lista",
+  "commands.selectium-mod.playerGroupSet.invalid": "UUID no válido o no está en la lista",
+
+  "commands.selectium-mod.playerGroupToggle.enable": "Información del grupo del jugador visible",
+  "commands.selectium-mod.playerGroupToggle.disable": "Información del grupo del jugador oculta",
+
+  "commands.selectium-mod.playerNicknameSet.edited": "Apodo de %1$s establecido como %2$s",
+  "commands.selectium-mod.playerNicknameSet.removed": "Apodo de %1$s eliminado",
+  "commands.selectium-mod.playerNicknameSet.failed": "%1$s no está en la lista",
+  "commands.selectium-mod.playerNicknameSet.invalid": "UUID no válido o no está en la lista",
+
+  "commands.selectium-mod.playerNicknameToggle.enable": "Información del apodo del jugador visible",
+  "commands.selectium-mod.playerNicknameToggle.disable": "Información del apodo del jugador oculta",
+
+  "commands.selectium-mod.playerClear": "Jugadores personales eliminados de la lista",
+
+  "commands.selectium-mod.playerToggle.enable": "Información del nombre del jugador visible",
+  "commands.selectium-mod.playerToggle.disable": "Información del nombre del jugador oculta",
+
+  "commands.selectium-mod.discordSet.connecting": "Conectando al servidor de Discord...",
+  "commands.selectium-mod.discordSet.disconnecting": "Desconectando del servidor de Discord...",
+  "commands.selectium-mod.discordSet.connected": "Discord conectado",
+  "commands.selectium-mod.discordSet.disconnected": "Discord desconectado",
+
+  "commands.selectium-mod.showStats.title": "Selectium Mod — Estadísticas",
+  "commands.selectium-mod.showStats.clientKills": "Objetivos personales eliminados",
+  "commands.selectium-mod.showStats.serverKills": "Objetivos compartidos eliminados",
+
+  "commands.selectium-mod.showHelp.title": "Selectium Mod — Comandos",
+  "commands.selectium-mod.showHelp.playerAdd": "Añadir jugador a la lista",
+  "commands.selectium-mod.showHelp.playerEdit": "Cambiar jugador de la lista",
+  "commands.selectium-mod.showHelp.playerRemove": "Eliminar jugador de la lista",
+  "commands.selectium-mod.showHelp.playerGroupEdit": "Añadir o cambiar el grupo de un jugador de la lista",
+  "commands.selectium-mod.showHelp.playerGroupRemove": "Eliminar el grupo de un jugador de la lista",
+  "commands.selectium-mod.showHelp.playerGroupToggle": "Activar o desactivar la visualización del grupo del jugador",
+  "commands.selectium-mod.showHelp.playerNicknameEdit": "Añadir o cambiar el apodo de un jugador de la lista",
+  "commands.selectium-mod.showHelp.playerNicknameRemove": "Eliminar el apodo de un jugador de la lista",
+  "commands.selectium-mod.showHelp.playerNicknameToggle": "Activar o desactivar la visualización del apodo del jugador",
+  "commands.selectium-mod.showHelp.playerClear": "Eliminar de la lista todos los jugadores añadidos personalmente",
+  "commands.selectium-mod.showHelp.playerToggle": "Activar o desactivar todas las etiquetas de nombre de los jugadores",
+  "commands.selectium-mod.showHelp.discordLink": "Conectarse al servidor de Discord de Selectium",
+  "commands.selectium-mod.showHelp.discordUnlink": "Desconectarse del servidor de Discord de Selectium y eliminar de la lista los jugadores compartidos",
+  "commands.selectium-mod.showHelp.stats": "Mostrar estadísticas del mod"
+}
