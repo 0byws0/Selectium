@@ -15,6 +15,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
 
 import net.byws.selectiummod.config.ConfigManager;
 import net.byws.selectiummod.config.ConfigJsonObj;
@@ -82,9 +83,9 @@ public class DiscordConnection
         }
     }
 
-    private static final String DISCORD_WS_URL = "wss://bywsdomain.xyz/ws";
+    private static final URI DISCORD_WS_URI = URI.create("wss://bywsdomain.xyz/ws");
     private static final int MAX_MSG_SIZE = 200000;
-    private static final long WS_UPDATE_INTERVAL = 80000000000L;
+    private static final long WS_UPDATE_INTERVAL = TimeUnit.SECONDS.toNanos(45);
     private static final TypeToken UPSERT_FORMAT = new TypeToken<Map<UUID, ConfigJsonObj.PlayerData>>(){};
     private static final TypeToken REMOVE_FORMAT = new TypeToken<Set<UUID>>(){};
 
@@ -140,11 +141,11 @@ public class DiscordConnection
         httpClient.newWebSocketBuilder()
                 .header("uuid", connUUID)
                 .header("token", token)
-                .buildAsync(URI.create(DISCORD_WS_URL), session)
-                .whenComplete((webSocket, error) ->
+                .buildAsync(DISCORD_WS_URI, session)
+                .whenCompleteAsync((webSocket, error) ->
                 {
-                    if (error != null) Minecraft.getInstance().execute(() -> handleFailure(session, error));
-                });
+                    if (error != null) handleFailure(session, error);
+                }, Minecraft.getInstance()::execute);
 
         return session.opened;
     }
@@ -157,12 +158,54 @@ public class DiscordConnection
         session.closed = new CompletableFuture<>();
         session.socket
                 .sendClose(WebSocket.NORMAL_CLOSURE, "Normal closure")
-                .whenComplete((webSocket, error) ->
+                .whenCompleteAsync((webSocket, error) ->
                 {
-                    if (error != null) Minecraft.getInstance().execute(() -> handleFailure(session, error));
-                });
+                    if (error != null) handleFailure(session, error);
+                }, Minecraft.getInstance()::execute);
 
         return session.closed;
+    }
+
+    public void shutdown()
+    {
+        pushData(true);
+        if (activeSession != null && activeSession.socket != null) activeSession.socket.abort();
+        httpClient.shutdown();
+    }
+
+    private void pushData(boolean force)
+    {
+        if (!isConnected()) return;
+
+        ConfigManager configManager = ConfigManager.getInstance();
+        int killCount = KillTracker.getInstance().takeServerSideKills();
+
+        var networkFuture = activeSession.socket.sendText(
+                gson.toJson(Map.of(
+                        "action", "update_player_data",
+                        "payload", Map.of("kills", killCount)
+                )), true);
+
+        if (force)
+        {
+            try
+            {
+                networkFuture.orTimeout(1, TimeUnit.SECONDS).join();
+                configManager.setKills(configManager.getKills(false) + killCount, false);
+            }
+            catch (Exception e)
+            {
+                logger.error("Failed to send pending WebSocket data: {}", e.getMessage());
+            }
+        }
+        else
+        {
+            networkFuture.whenCompleteAsync((webSocket, error) ->
+            {
+                if (error != null) KillTracker.getInstance().updateServerSideKills(killCount);
+                else configManager.setKills(configManager.getKills(false) + killCount, false);
+            }, Minecraft.getInstance()::execute);
+        }
     }
 
     public void updateWebsocket()
@@ -172,21 +215,17 @@ public class DiscordConnection
             disconnect();
             connUUID = "";
         }
-        if (!isConnected())
-        {
-            if (connUUID.isEmpty()) connect();
-            return;
-        }
+        if (connUUID.isEmpty()) connect();
 
-        long currentNanos = System.nanoTime();
-
-        if ((currentNanos - lastPushNanos) > WS_UPDATE_INTERVAL)
+        if (isConnected())
         {
-            activeSession.socket.sendText(gson.toJson(Map.of(
-                    "action", "update_player_data",
-                    "payload", Map.of("kills", KillTracker.getInstance().serverSideKills())
-            )), true);
-            lastPushNanos = currentNanos;
+            long currentNanos = System.nanoTime();
+
+            if ((currentNanos - lastPushNanos) > WS_UPDATE_INTERVAL)
+            {
+                pushData(false);
+                lastPushNanos = currentNanos;
+            }
         }
     }
 
@@ -211,7 +250,7 @@ public class DiscordConnection
         if (!session.opened.isDone()) session.opened.completeExceptionally(new IllegalStateException("WebSocket closed before opening: " + reason));
         if (session.closed != null) session.closed.complete(null);
 
-        logger.info("Discord websocket closed ({}): {}", statusCode, reason);
+        logger.info("Discord WebSocket closed ({}): {}", statusCode, reason);
     }
 
     private void handleFailure(WebSocketSession session, Throwable error)
@@ -228,7 +267,7 @@ public class DiscordConnection
         session.opened.completeExceptionally(error);
         if (session.closed != null) session.closed.completeExceptionally(error);
 
-        logger.error("Discord websocket failed: {}", error.getMessage());
+        logger.error("Discord WebSocket failed: {}", error.getMessage());
     }
 
     private void handleMessage(WebSocketSession session, String jsonMsg)
@@ -248,7 +287,7 @@ public class DiscordConnection
         }
         catch (Exception e)
         {
-            logger.error("Selectium Mod failed to parse websocket data: {}", e.getMessage());
+            logger.error("Failed to parse WebSocket data: {}", e.getMessage());
         }
     }
 
@@ -281,9 +320,6 @@ public class DiscordConnection
         Set<UUID> serverPlayerList = gson.fromJson(message.get("payload"), REMOVE_FORMAT.getType());
         ConfigManager configManager = ConfigManager.getInstance();
 
-        serverPlayerList.forEach((playerUUID) ->
-        {
-            configManager.removeListPlayer(playerUUID, false);
-        });
+        serverPlayerList.forEach((playerUUID) -> configManager.removeListPlayer(playerUUID, false));
     }
 }

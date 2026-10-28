@@ -58,7 +58,7 @@ public class ConfigManager
         }
         catch (IOException e)
         {
-            logger.error("Selectium Mod failed to load config: {}", e.getMessage());
+            logger.error("Failed to load config: {}", e.getMessage());
         }
     }
 
@@ -70,8 +70,14 @@ public class ConfigManager
         }
         catch (IOException e)
         {
-            logger.error("Selectium Mod failed to save config: {}", e.getMessage());
+            logger.error("Failed to save config: {}", e.getMessage());
         }
+    }
+
+    public void flush()
+    {
+        if (requiresSave) save();
+        requiresSave = false;
     }
 
     public Map<String, UUID> getOnlinePlayers() { return new HashMap<>(onlinePlayers); }
@@ -126,8 +132,7 @@ public class ConfigManager
             }
         }
 
-        if (requiresSave) save();
-        requiresSave = false;
+        flush();
     }
 
     public boolean addListPlayer(UUID playerUUID, boolean clientSide, ConfigJsonObj.Category type, String group, String nickname)
@@ -172,8 +177,16 @@ public class ConfigManager
         ConfigJsonObj.PlayerData player = config.playerList.get(playerUUID);
         if (player == null) return false;
 
-        if (clientSide) player.clientType = null;
-        else player.serverType = null;
+        if (clientSide && player.clientType != null)
+        {
+            player.clientType = null;
+            requiresSave = true;
+        }
+        else if (player.serverType != null)
+        {
+            player.serverType = null;
+            requiresSave = true;
+        }
 
         if (player.clientType == null && player.serverType == null)
         {

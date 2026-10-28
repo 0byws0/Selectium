@@ -3,6 +3,7 @@ package net.byws.selectiummod;
 import com.google.gson.Gson;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import org.slf4j.Logger;
@@ -42,6 +43,12 @@ public class SelectiumMod implements ClientModInitializer
 		{
 			discordConnection.updateWebsocket();
 			configManager.updatePlayerData();
+		});
+
+		ClientLifecycleEvents.CLIENT_STOPPING.register(client ->
+		{
+			discordConnection.shutdown();
+			configManager.flush();
 		});
 	}
 }
