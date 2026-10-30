@@ -34,7 +34,7 @@ public abstract class PlayerMixin
         ConfigJsonObj.PlayerData playerData = configManager.getPlayerData(playerName);
         MutableComponent modifiedOriginal = original.copy();
         resetComponent(modifiedOriginal, playerName);
-        if (playerData == null) return original.copy().withStyle(ChatFormatting.WHITE);
+        if (playerData == null) return modifiedOriginal.withStyle(ChatFormatting.WHITE);
 
         MutableComponent updatedName = Component.empty().withStyle(playerData.getDominantColor());
 

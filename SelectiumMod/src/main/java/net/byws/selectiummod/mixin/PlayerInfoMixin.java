@@ -1,20 +1,24 @@
 package net.byws.selectiummod.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import com.mojang.authlib.GameProfile;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.components.PlayerTabOverlay;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 
 import net.byws.selectiummod.config.ConfigJsonObj;
 import net.byws.selectiummod.config.ConfigManager;
 
-@Mixin(value = PlayerTabOverlay.class, priority = 1)
-public class PlayerTabOverlayMixin
+@Mixin(value = PlayerInfo.class, priority = 1)
+public abstract class PlayerInfoMixin
 {
+    @Shadow
+    public abstract GameProfile getProfile();
+
     private void resetComponent(Component component, String targetText)
     {
         if (component instanceof MutableComponent mutableComponent && component.getString().contains(targetText))
@@ -25,15 +29,15 @@ public class PlayerTabOverlayMixin
         for (Component sibling : component.getSiblings()) resetComponent(sibling, targetText);
     }
 
-    @ModifyReturnValue(method = "getNameForDisplay", at = @At("RETURN"))
-    public Component overrideNameColor(Component original, PlayerInfo entry)
+    @ModifyReturnValue(method = "getTabListDisplayName", at = @At("RETURN"))
+    private Component overrideNameColor(Component original)
     {
         ConfigManager configManager = ConfigManager.getInstance();
         if (!configManager.getEnableInfo()) return original;
 
-        String playerName = entry.getProfile().name();
+        String playerName = ((PlayerInfo)(Object)this).getProfile().name();
         ConfigJsonObj.PlayerData playerData = configManager.getPlayerData(playerName);
-        MutableComponent modifiedOriginal = original.copy();
+        MutableComponent modifiedOriginal = (original == null) ? Component.literal(getProfile().name()) : original.copy();
         resetComponent(modifiedOriginal, playerName);
         if (playerData == null) return modifiedOriginal.withStyle(ChatFormatting.WHITE);
 
