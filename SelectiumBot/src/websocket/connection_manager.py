@@ -43,11 +43,12 @@ class ConnectionManager:
             await conn_ws.accept()
 
     async def disconnect(self, conn_uuid: str):
-        if conn_ws := self.active_connections.pop(conn_uuid, None):
-            try:
-                await conn_ws.close(status.WS_1000_NORMAL_CLOSURE)
-            except Exception:
-                pass
+        if not (conn_ws := self.active_connections.pop(conn_uuid, None)): return
+
+        try:
+            await conn_ws.close(status.WS_1000_NORMAL_CLOSURE)
+        except Exception:
+            pass
 
     async def broadcast(self, action: Actions, payload_data, conn_uuid: str = None):
         if conn_uuid is None:

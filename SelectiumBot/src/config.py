@@ -15,10 +15,16 @@ try:
     NEUTRAL_CHANNEL_ID = int(os.environ["NEUTRAL_CHANNEL_ID"])
     TARGET_CHANNEL_ID = int(os.environ["TARGET_CHANNEL_ID"])
     ORDERED_ROLES_IDS = list(map(int, os.environ["ORDERED_ROLE_IDS"].split(",")))
-    MOD_ROLE_IDS = ORDERED_ROLES_IDS[ORDERED_ROLES_IDS.index(int(os.environ["MIN_MOD_ROLE_ID"])):]
-    BOT_ROLE_IDS = ORDERED_ROLES_IDS[ORDERED_ROLES_IDS.index(int(os.environ["MIN_BOT_ROLE_ID"])):]
+    MOD_ROLE_IDS = list(map(int, os.environ["MOD_ROLE_IDS"].split(",")))
+    BOT_ROLE_IDS = list(map(int, os.environ["BOT_ROLE_IDS"].split(",")))
 except (KeyError, ValueError) as e:
     raise RuntimeError(f"Environment file misconfigured: {e}")
+
+try:
+    os.makedirs("data", exist_ok=True)
+    os.makedirs("logs", exist_ok=True)
+except PermissionError:
+    print("Missing permissions to create this directory")
 
 _file_handler = TimedRotatingFileHandler("logs/app.log", when="midnight", interval=1, backupCount=7, encoding="utf-8")
 _file_handler.suffix = "%Y-%m-%d"

@@ -199,10 +199,12 @@ class PlayerList(commands.Cog):
                 pass
         return {}
 
-    @tasks.loop(minutes=30)
+    @tasks.loop(minutes=1)
     async def update(self):
-        try: guild = self.bot.get_guild(GUILD_ID) or await self.bot.fetch_guild(GUILD_ID)
-        except Exception: return
+        try:
+            guild = self.bot.get_guild(GUILD_ID) or await self.bot.fetch_guild(GUILD_ID)
+        except Exception:
+            return
 
         players = await self.bot.db.get_player()
         upd_count = -next((i for i, p in enumerate(players) if p.mc_uuid == self.upd_last_uuid), 0)

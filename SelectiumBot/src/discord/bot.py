@@ -18,11 +18,18 @@ class SelectiumManager(commands.Bot):
         print("Selectium Bot Ready")
 
     async def command_error(self, interaction, error):
-        if isinstance(error, app_commands.errors.MissingAnyRole):
-            await interaction.response.send_message("Missing required roles for this command")
-            return
+        match error:
+            case app_commands.errors.MissingAnyRole():
+                error_msg = "Missing required roles for this command"
+            case app_commands.errors.MissingPermissions():
+                error_msg = "Missing permissions for this command"
+            case _:
+                raise error
 
-        raise error
+        if interaction.response.is_done():
+            await interaction.followup.send(error_msg, ephemeral=True)
+        else:
+            await interaction.response.send_message(error_msg, ephemeral=True)
 
     async def setup_hook(self):
         self.tree.on_error = self.command_error
