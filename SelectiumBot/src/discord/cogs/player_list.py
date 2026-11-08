@@ -199,7 +199,7 @@ class PlayerList(commands.Cog):
                 pass
         return {}
 
-    @tasks.loop(minutes=1)
+    @tasks.loop(minutes=30)
     async def update(self):
         try:
             guild = self.bot.get_guild(GUILD_ID) or await self.bot.fetch_guild(GUILD_ID)

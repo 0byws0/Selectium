@@ -41,20 +41,25 @@ class Announcements(commands.Cog):
                         player_subgroup = highest_role.name
 
                 if player_group not in self.player_list:
-                    self.player_list[player_group] = {(guild.get_role(role_id) or
-                                                       await guild.fetch_role(role_id)).name:{}
+                    self.player_list[player_group] = {(guild.get_role(role_id) or await guild.fetch_role(role_id)).name:{}
                                                       for role_id in reversed(ORDERED_ROLES_IDS)}
             except discord.DiscordException:
                 pass
-
-            if player_data.vanquishes is not None:
-                (self.player_list.setdefault(self.KILL_LEADERBOARD, {})
-                 .setdefault(player_data.vanquishes, {})
-                 .setdefault(player_data.alias, [])
-                 .append(player_data.mc_name))
         else:
             player_group = player_data.cat
             player_subgroup = player_data.org or self.NO_SUBGROUP
+
+        if player_data.vanquishes is not None:
+            leaderboard_entry = self.player_list.setdefault(self.KILL_LEADERBOARD, {}).setdefault(player_data.alias, [])
+
+            if player_data.alias is None or not leaderboard_entry:
+                leaderboard_player = [[], 0]
+                leaderboard_entry.append(leaderboard_player)
+            else:
+                leaderboard_player = leaderboard_entry[0]
+
+            leaderboard_player[0].append(player_data.mc_name)
+            leaderboard_player[1] += player_data.vanquishes
 
         (self.player_list.setdefault(player_group, {})
          .setdefault(player_subgroup, {})
@@ -78,13 +83,19 @@ class Announcements(commands.Cog):
                         for subgroup, aliases in subgroups.items()
                     )
                 case self.KILL_LEADERBOARD:
+                    rows = []
+                    for alias, members in subgroups.items():
+                        if alias is not None:
+                            names, kills = members[0]
+                            name = f"{alias} = {' / '.join(sorted(names, key=str.lower))}"
+                            rows.append((name, kills))
+                        else:
+                            for names, kills in members:
+                                for name in sorted(names, key=str.lower): rows.append((name, kills))
+
                     display_str = display.title + "\n```\n" + "".join(
-                        f"{f'{player}: ':<20} {f'{subgroup} kills':>20}\n"
-                        for subgroup, aliases in sorted(subgroups.items(), key=lambda x: x[0], reverse=True)
-                        for alias, members in sorted(aliases.items(), key=lambda x: (x[0] is not None, (x[0] or "").lower()))
-                        for player in ([f"{alias} = {' / '.join(sorted(members, key=str.lower))}"] if alias
-                                       else [f"{m}" for m in sorted(members, key=str.lower)])
-                    ) + "\n```"
+                        f"{f'{name}:':<25} {f'{kills} kills':>15}\n"
+                        for name, kills in sorted(rows, key=lambda x: x[1], reverse=True)) + "\n```"
                 case _:
                     display_str = display.title + "\n" + "".join(
                         (f"## {subgroup}\n" + " ".join(

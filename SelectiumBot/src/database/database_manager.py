@@ -85,11 +85,6 @@ class DatabaseManager:
                                 neutral_msg_id INTEGER,
                                 target_msg_id INTEGER)""")
 
-        # await self.conn.execute(f"ALTER TABLE players ADD COLUMN {self.Fields.KILLS.value} INTEGER")
-        # await self.conn.execute(f"ALTER TABLE server ADD COLUMN guild_msg_id INTEGER")
-        # await self.conn.execute(f"ALTER TABLE server ADD COLUMN leaderboard_msg_id INTEGER")
-        # await self.conn.execute(f"ALTER TABLE server DROP COLUMN guild_org_msg_id")
-
         await self.conn.commit()
 
     async def close(self):
