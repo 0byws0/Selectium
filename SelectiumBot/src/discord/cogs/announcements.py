@@ -28,6 +28,14 @@ class Announcements(commands.Cog):
         self.player_list = {}
 
     async def append_list_player(self, guild, player_data: Player):
+        if not self.player_list:
+            for role_id in reversed(ORDERED_ROLES_IDS):
+                try:
+                    (self.player_list.setdefault(self.GUILD_LIST, {})
+                     .setdefault((guild.get_role(role_id) or await guild.fetch_role(role_id)).name, {}))
+                except discord.DiscordException:
+                    pass
+
         if player_data.org == guild.name:
             player_group = self.GUILD_LIST
             player_subgroup = self.NO_SUBGROUP
@@ -39,10 +47,6 @@ class Announcements(commands.Cog):
                     if highest_role := next((r for role_id in reversed(ORDERED_ROLES_IDS)
                                              if (r := dc_member.get_role(role_id))), None):
                         player_subgroup = highest_role.name
-
-                if player_group not in self.player_list:
-                    self.player_list[player_group] = {(guild.get_role(role_id) or await guild.fetch_role(role_id)).name:{}
-                                                      for role_id in reversed(ORDERED_ROLES_IDS)}
             except discord.DiscordException:
                 pass
         else:

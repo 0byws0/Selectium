@@ -65,8 +65,9 @@ class DatabaseManager:
     async def connect(self):
         self.conn = await aiosqlite.connect(self.db_path, timeout=10)
         # self.conn.row_factory = aiosqlite.Row
-
         await self.conn.execute("PRAGMA journal_mode=WAL")
+        await self.conn.execute("PRAGMA synchronous=NORMAL")
+
         await self.conn.execute(f"""CREATE TABLE IF NOT EXISTS players (
                         {self.Fields.UUID.value} BLOB PRIMARY KEY,
                         {self.Fields.USERNAME.value} TEXT NOT NULL,
@@ -206,5 +207,5 @@ class DatabaseManager:
                                       "FROM server WHERE id=1")
 
         row = await cur.fetchone()
-        if row: return GuildConfig(row[0], row[1], row[2], row[3], row[4])
-        return GuildConfig(None, None, None, None, None)
+        return (GuildConfig(row[0], row[1], row[2], row[3], row[4]) if row
+                else GuildConfig(None, None, None, None, None))

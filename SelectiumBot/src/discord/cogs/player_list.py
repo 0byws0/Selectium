@@ -203,7 +203,7 @@ class PlayerList(commands.Cog):
     async def update(self):
         try:
             guild = self.bot.get_guild(GUILD_ID) or await self.bot.fetch_guild(GUILD_ID)
-        except Exception:
+        except discord.DiscordException:
             return
 
         players = await self.bot.db.get_player()
