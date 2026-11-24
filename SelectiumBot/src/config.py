@@ -24,7 +24,7 @@ try:
     os.makedirs("data", exist_ok=True)
     os.makedirs("logs", exist_ok=True)
 except PermissionError:
-    print("Missing permissions to create this directory")
+    print("Missing permissions to create directories")
 
 _file_handler = TimedRotatingFileHandler("logs/app.log", when="midnight", interval=1, backupCount=7, encoding="utf-8")
 _file_handler.suffix = "%Y-%m-%d"

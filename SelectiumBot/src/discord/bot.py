@@ -36,6 +36,7 @@ class SelectiumManager(commands.Bot):
 
         await self.load_extension("src.discord.cogs.player_list")
         await self.load_extension("src.discord.cogs.announcements")
+        await self.load_extension("src.discord.cogs.maintenance")
         await self.tree.sync(guild=discord.Object(GUILD_ID))
 
     async def close(self):

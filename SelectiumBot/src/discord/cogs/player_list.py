@@ -1,6 +1,6 @@
 import discord
 from discord import app_commands
-from discord.ext import commands, tasks
+from discord.ext import commands
 import Paginator
 from uuid import UUID
 import unicodedata
@@ -14,11 +14,6 @@ from src.database.player_handler import Player
 class PlayerList(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.upd_last_uuid = None
-        self.update.start()
-
-    def cog_unload(self):
-        self.update.cancel()
 
     @staticmethod
     def _player_info_embed(player_data: Player) -> discord.Embed:
@@ -119,7 +114,7 @@ class PlayerList(commands.Cog):
             await interaction.followup.send(f"Player(s) {' '.join([f'`{player_data.mc_name}`' for player_data in player_data_list])} removed")
             await self.bot.conn_manager.broadcast(ConnectionManager.Actions.LIST_REMOVE, player_data_list)
         else:
-            await interaction.followup.send(f"{field.name.capitalize()} `{field_input}` not found database")
+            await interaction.followup.send(f"{field.name.capitalize()} `{field_input}` not found in database")
 
     async def discord_autocomplete(self, field, interaction, current, choices):
         if not field or not current or field == DatabaseManager.Fields.TOKEN: return choices
@@ -185,7 +180,7 @@ class PlayerList(commands.Cog):
                                                [app_commands.Choice(name="- (remove)", value="-")]
                                                if not current or current in ["-", "- (remove)"] else [])
 
-    async def _update_player_discord(self, guild, player_data):
+    async def update_player_data(self, guild, player_data):
         if player_data.token_hash is None and player_data.dc_id is not None:
             try:
                 dc_member = guild.get_member(player_data.dc_id) or await guild.fetch_member(player_data.dc_id)
@@ -198,40 +193,6 @@ class PlayerList(commands.Cog):
             except discord.DiscordException:
                 pass
         return {}
-
-    @tasks.loop(minutes=30)
-    async def update(self):
-        try:
-            guild = self.bot.get_guild(GUILD_ID) or await self.bot.fetch_guild(GUILD_ID)
-        except discord.DiscordException:
-            return
-
-        players = await self.bot.db.get_player()
-        upd_count = -next((i for i, p in enumerate(players) if p.mc_uuid == self.upd_last_uuid), 0)
-        self.upd_last_uuid = None
-
-        for player_data in players:
-            upd_params = {}
-
-            if self.upd_last_uuid is None:
-                if upd_count >= 50:
-                    self.upd_last_uuid = player_data.mc_uuid
-                elif upd_count >= 0:
-                    await player_data.update()
-                    upd_params[DatabaseManager.Fields.USERNAME.value] = player_data.mc_name
-                upd_count += 1
-
-            upd_params.update(await self._update_player_discord(guild, player_data))
-
-            if upd_params:
-                await self.bot.db.update_player(DatabaseManager.Fields.UUID, player_data.mc_uuid, **upd_params)
-
-            await self.bot.get_cog("Announcements").append_list_player(guild, player_data)
-        await self.bot.get_cog("Announcements").push_list_update()
-
-    @update.before_loop
-    async def before_update(self):
-        await self.bot.wait_until_ready()
 
 async def setup(bot):
     await bot.add_cog(PlayerList(bot))
