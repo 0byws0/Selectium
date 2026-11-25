@@ -1,5 +1,6 @@
 from fastapi import WebSocket, status, WebSocketException
 from enum import Enum
+from uuid import UUID
 
 class ConnectionManager:
     class Actions(Enum): # rework later
@@ -7,9 +8,11 @@ class ConnectionManager:
         LIST_ADD = "add_list_player"
         LIST_EDIT = "edit_list_player"
         LIST_REMOVE = "remove_list_player"
+        CHAT = "chat_message"
 
         def convert(self, payload_data):
             if payload_data is None: return None
+
             try:
                 match self:
                     case self.LIST_UPDATE | self.LIST_ADD | self.LIST_EDIT:
@@ -22,27 +25,27 @@ class ConnectionManager:
                                      "group":player_data.org,
                                      "nickname":player_data.alias}
                                 for player_data in payload_data}
-
                     case self.LIST_REMOVE:
                         if not isinstance(payload_data, (list, tuple)): payload_data = [payload_data]
 
                         return [str(player_data.mc_uuid)
                                 for player_data in payload_data]
-
+                    case self.CHAT:
+                        return str(payload_data)
             except (ValueError, TypeError, KeyError, AttributeError):
                 return None
 
     def __init__(self):
-        self.active_connections: dict[str, WebSocket] = {} # change to uuid later
+        self.active_connections: dict[UUID, WebSocket] = {}
 
-    async def connect(self, conn_uuid: str, conn_ws: WebSocket):
+    async def connect(self, conn_uuid: UUID, conn_ws: WebSocket):
         if conn_uuid in self.active_connections:
             raise WebSocketException(status.WS_1008_POLICY_VIOLATION)
         else:
             self.active_connections[conn_uuid] = conn_ws
             await conn_ws.accept()
 
-    async def disconnect(self, conn_uuid: str):
+    async def disconnect(self, conn_uuid: UUID):
         if not (conn_ws := self.active_connections.pop(conn_uuid, None)): return
 
         try:
@@ -50,7 +53,7 @@ class ConnectionManager:
         except Exception:
             pass
 
-    async def broadcast(self, action: Actions, payload_data, conn_uuid: str = None):
+    async def broadcast(self, action: Actions, payload_data, conn_uuid: UUID = None):
         if conn_uuid is None:
             conn_snapshot = list(self.active_connections.values())
         else:

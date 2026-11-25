@@ -17,25 +17,28 @@ async def verify_headers(websocket: WebSocket, conn_uuid: str = Header(alias="uu
 
     if not player_valid or not token_valid: raise WebSocketException(status.WS_1008_POLICY_VIOLATION)
 
-    return str(player_data[0].mc_uuid)
+    return {"uuid":player_data[0].mc_uuid, "name":player_data[0].mc_name}
 
 @ws_router.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket, conn_uuid = Depends(verify_headers)):
+async def websocket_endpoint(websocket: WebSocket, conn_data = Depends(verify_headers)):
     conn_manager = websocket.app.state.conn_manager
     database = websocket.app.state.database
-    await conn_manager.connect(conn_uuid, websocket)
+    await conn_manager.connect(conn_data["uuid"], websocket)
 
     try:
-        await conn_manager.broadcast(ConnectionManager.Actions.LIST_UPDATE, await database.get_player(), conn_uuid)
+        await conn_manager.broadcast(ConnectionManager.Actions.LIST_UPDATE, await database.get_player(), conn_data["uuid"])
+
         while True:
             received_data = await websocket.receive_json()
 
             match received_data["action"]:
                 case "update_player_data":
-                    updated_kills = (((await database.get_player(DatabaseManager.Fields.UUID, conn_uuid))[0].vanquishes or 0) +
-                                     received_data["payload"]["kills"])
-                    await database.update_player(DatabaseManager.Fields.UUID, conn_uuid,
-                                                 **{DatabaseManager.Fields.KILLS.value:updated_kills})
-
+                    player_data = (await database.get_player(DatabaseManager.Fields.UUID, conn_data["uuid"]))[0]
+                    await database.update_player(DatabaseManager.Fields.UUID, conn_data["uuid"],
+                                                 **{DatabaseManager.Fields.KILLS.value:(player_data.vanquishes or 0) + received_data["payload"]["kills"]})
+                case "chat_message":
+                    await conn_manager.broadcast(ConnectionManager.Actions.CHAT, f"{conn_data['name']}: {received_data['payload']}")
     except Exception:
-        await conn_manager.disconnect(conn_uuid)
+        pass
+    finally:
+        await conn_manager.disconnect(conn_data["uuid"])
